@@ -114,6 +114,8 @@ MUTATIONS = [
     ("scheduling skips its checks", DOMAIN + "note.go", "if err := note.requireChange(scheduledAt); err != nil {", "if err := error(nil); err != nil {"),
     ("cancelling skips its checks", DOMAIN + "note.go", "if err := note.requireChange(cancelledAt); err != nil {", "if err := error(nil); err != nil {"),
     ("triggering skips its checks", DOMAIN + "note.go", "if err := note.requireChange(triggeredAt); err != nil {", "if err := error(nil); err != nil {"),
+    ("a reminder is lost on save", MEMORY + "mapper.go", "remindAt:  note.RemindAt(),", "remindAt:  note.CreatedAt(),"),
+    ("a reminder is lost on load", DOMAIN + "note.go", "archived: archived, remindAt: remindAt,", "archived: archived,"),
 ]
 
 

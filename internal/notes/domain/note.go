@@ -51,7 +51,7 @@ func ReconstituteNote(id NoteID, title Title, body Body, archived bool, remindAt
 	if version < 1 {
 		return Note{}, errNoteVersionInvalid
 	}
-	return Note{id: id, title: title, body: body, archived: archived, createdAt: createdAt, editedAt: editedAt, version: version}, nil
+	return Note{id: id, title: title, body: body, archived: archived, remindAt: remindAt, createdAt: createdAt, editedAt: editedAt, version: version}, nil
 }
 
 // Edit replaces the title and body.

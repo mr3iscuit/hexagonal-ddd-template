@@ -12,6 +12,7 @@ func toRecord(note domain.Note) noteRecord {
 		title:     note.Title().String(),
 		body:      note.Body().String(),
 		archived:  note.IsArchived(),
+		remindAt:  note.RemindAt(),
 		createdAt: note.CreatedAt(),
 		editedAt:  note.EditedAt(),
 		version:   note.Version(),
