@@ -42,6 +42,7 @@ const (
 	unexpectedQueryMessage  = "unexpected query parameter"
 	malformedQueryMessage   = "query string is not valid"
 	invalidArchivedMessage  = "archived must be true or false, once"
+	invalidRemindAtMessage  = "remindAt must be an RFC 3339 time"
 	requestCancelledMessage = "request was cancelled"
 
 	logRequestHandled   = "request handled"

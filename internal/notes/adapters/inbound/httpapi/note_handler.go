@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -31,6 +32,7 @@ func (handler NoteHandler) Register(router chi.Router) {
 	router.Delete("/notes/{id}", handler.handle(withoutBody(handler.deleteNote)))
 	router.Post("/notes/{id}/archive", handler.handle(withoutBody(handler.archiveNote)))
 	router.Post("/notes/{id}/restore", handler.handle(withoutBody(handler.restoreNote)))
+	router.Put("/notes/{id}/reminder", handler.handle(handler.scheduleReminder))
 }
 
 // handle lets an endpoint stop by returning an error, so every failure goes
@@ -106,6 +108,22 @@ func (handler NoteHandler) archiveNote(responseWriter http.ResponseWriter, reque
 
 func (handler NoteHandler) restoreNote(responseWriter http.ResponseWriter, request *http.Request) error {
 	view, err := handler.noteUseCases.RestoreNote(request.Context(), toRestoreNoteCommand(noteIDFrom(request)))
+	if err != nil {
+		return err
+	}
+	return handler.respond(responseWriter, request, http.StatusOK, toNoteResponseDTO(view))
+}
+
+func (handler NoteHandler) scheduleReminder(responseWriter http.ResponseWriter, request *http.Request) error {
+	requestDTO, err := decodeRequest[ScheduleReminderRequestDTO](responseWriter, request, scheduleReminderRequestFields)
+	if err != nil {
+		return err
+	}
+	remindAt, err := time.Parse(time.RFC3339, requestDTO.RemindAt)
+	if err != nil {
+		return invalidRequest(FieldError{Message: invalidRemindAtMessage, Location: bodyLocation + locationSeparator + remindAtField})
+	}
+	view, err := handler.noteUseCases.ScheduleReminder(request.Context(), toScheduleReminderCommand(noteIDFrom(request), remindAt))
 	if err != nil {
 		return err
 	}
