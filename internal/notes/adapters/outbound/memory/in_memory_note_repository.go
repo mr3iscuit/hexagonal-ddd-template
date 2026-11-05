@@ -92,7 +92,19 @@ func (repository *InMemoryNoteRepository) List(ctx context.Context, archived boo
 
 // ListDueReminders finds the notes whose reminder has come due.
 func (repository *InMemoryNoteRepository) ListDueReminders(ctx context.Context, now time.Time) ([]domain.Note, error) {
-	return nil, nil
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	records := repository.dueRecords(now)
+	notes := make([]domain.Note, 0, len(records))
+	for _, record := range records {
+		note, err := toDomain(record)
+		if err != nil {
+			return nil, err
+		}
+		notes = append(notes, note)
+	}
+	return notes, nil
 }
 
 // matchingRecords copies the records, so that rebuilding them for a long list
@@ -103,6 +115,18 @@ func (repository *InMemoryNoteRepository) matchingRecords(archived bool) []noteR
 	records := make([]noteRecord, 0, len(repository.records))
 	for _, record := range repository.records {
 		if record.archived == archived {
+			records = append(records, record)
+		}
+	}
+	return records
+}
+
+func (repository *InMemoryNoteRepository) dueRecords(now time.Time) []noteRecord {
+	repository.mutex.Lock()
+	defer repository.mutex.Unlock()
+	var records []noteRecord
+	for _, record := range repository.records {
+		if !record.remindAt.IsZero() && !record.remindAt.After(now) {
 			records = append(records, record)
 		}
 	}

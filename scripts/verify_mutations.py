@@ -116,6 +116,9 @@ MUTATIONS = [
     ("triggering skips its checks", DOMAIN + "note.go", "if err := note.requireChange(triggeredAt); err != nil {", "if err := error(nil); err != nil {"),
     ("a reminder is lost on save", MEMORY + "mapper.go", "remindAt:  note.RemindAt(),", "remindAt:  note.CreatedAt(),"),
     ("a reminder is lost on load", DOMAIN + "note.go", "archived: archived, remindAt: remindAt,", "archived: archived,"),
+    ("a reminder due now isn't listed", MEMORY + "in_memory_note_repository.go", "!record.remindAt.IsZero() && !record.remindAt.After(now)", "!record.remindAt.IsZero() && record.remindAt.Before(now)"),
+    ("a note with no reminder is listed as due", MEMORY + "in_memory_note_repository.go", "!record.remindAt.IsZero() && !record.remindAt.After(now)", "!record.remindAt.After(now)"),
+    ("a reminder that isn't due is listed", MEMORY + "in_memory_note_repository.go", "!record.remindAt.IsZero() && !record.remindAt.After(now)", "!record.remindAt.IsZero()"),
 ]
 
 
