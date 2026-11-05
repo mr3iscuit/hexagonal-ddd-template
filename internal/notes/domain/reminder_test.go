@@ -1,6 +1,7 @@
 package domain_test
 
 import (
+	"errors"
 	"slices"
 	"testing"
 	"time"
@@ -32,6 +33,25 @@ func TestSchedulingAReminderRecordsItsEvent(t *testing.T) {
 	}
 	if event := note.PendingEvents()[1]; event.NoteID() != note.ID() || !event.OccurredAt().Equal(changedAt) {
 		t.Errorf("event = %+v", event)
+	}
+}
+
+func TestAReminderMustBeInTheFuture(t *testing.T) {
+	testCases := []struct {
+		name     string
+		remindAt time.Time
+		want     error
+	}{
+		{"one nanosecond ago", changedAt.Add(-time.Nanosecond), domain.ErrReminderNotInFuture},
+		{"exactly now", changedAt, domain.ErrReminderNotInFuture},
+		{"one nanosecond from now", changedAt.Add(time.Nanosecond), nil},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			if _, err := newNote(t).ScheduleReminder(testCase.remindAt, changedAt); !errors.Is(err, testCase.want) {
+				t.Errorf("err = %v, want %v", err, testCase.want)
+			}
+		})
 	}
 }
 

@@ -15,6 +15,7 @@ var (
 	ErrNoteAlreadyArchived      = errors.New("note is already archived")
 	ErrNoteNotArchived          = errors.New("note is not archived")
 	ErrNoteArchived             = errors.New("an archived note cannot be edited")
+	ErrReminderNotInFuture      = errors.New("a reminder must be in the future")
 
 	// These faults can never come from a client, so they have no HTTP form.
 	errNoteNotCreated     = errors.New("note was never created")

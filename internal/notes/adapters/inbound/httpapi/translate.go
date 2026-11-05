@@ -29,6 +29,7 @@ var businessErrors = []struct {
 	{domain.ErrNoteAlreadyArchived, http.StatusConflict, codeNoteAlreadyArchived},
 	{domain.ErrNoteNotArchived, http.StatusConflict, codeNoteNotArchived},
 	{domain.ErrNoteArchived, http.StatusConflict, codeNoteArchived},
+	{domain.ErrReminderNotInFuture, http.StatusUnprocessableEntity, codeNoteReminderNotInFuture},
 }
 
 // translate turns any error into an APIError. Unknown errors are logged and

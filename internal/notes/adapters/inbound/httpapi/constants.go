@@ -16,6 +16,7 @@ const (
 	codeNoteAlreadyArchived          = "NOTE_ALREADY_ARCHIVED"
 	codeNoteNotArchived              = "NOTE_NOT_ARCHIVED"
 	codeNoteArchived                 = "NOTE_ARCHIVED"
+	codeNoteReminderNotInFuture      = "NOTE_REMINDER_NOT_IN_FUTURE"
 	codeMalformedRequest             = "MALFORMED_REQUEST"
 	codeValidationFailed             = "VALIDATION_FAILED"
 	codeUnsupportedMediaType         = "UNSUPPORTED_MEDIA_TYPE"
