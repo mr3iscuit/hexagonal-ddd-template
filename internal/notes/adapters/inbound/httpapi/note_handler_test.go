@@ -92,6 +92,20 @@ func TestANoteWithAReminderShowsItsTime(t *testing.T) {
 	}
 }
 
+func TestSchedulingAReminderOverHTTP(t *testing.T) {
+	server := newServer(t)
+	note := createNote(t, server)
+	scheduled := call(t, http.MethodPut, server.URL+note+"/reminder", jsonType, `{"remindAt":"2999-01-02T07:04:05+04:00"}`)
+	assertStatus(t, scheduled, http.StatusOK)
+	const want = "2999-01-02T03:04:05Z"
+	if scheduled.body["remindAt"] != want {
+		t.Errorf("remindAt = %v", scheduled.body["remindAt"])
+	}
+	if read := call(t, http.MethodGet, server.URL+note, jsonType, ""); read.body["remindAt"] != want {
+		t.Errorf("remindAt = %v", read.body["remindAt"])
+	}
+}
+
 func TestTimesLeaveTheAPIInUTC(t *testing.T) {
 	server := newServer(t)
 	created := call(t, http.MethodPost, server.URL+"/notes", jsonType, groceries)
@@ -206,6 +220,7 @@ func TestEveryRouteDecodesAPercentEncodedID(t *testing.T) {
 	note := percentEncoded(createNote(t, server))
 	assertStatus(t, call(t, http.MethodGet, server.URL+note, jsonType, ""), http.StatusOK)
 	assertStatus(t, call(t, http.MethodPut, server.URL+note, jsonType, groceries), http.StatusOK)
+	assertStatus(t, call(t, http.MethodPut, server.URL+note+"/reminder", jsonType, futureReminder), http.StatusOK)
 	assertStatus(t, call(t, http.MethodPost, server.URL+note+"/archive", jsonType, ""), http.StatusOK)
 	assertStatus(t, call(t, http.MethodPost, server.URL+note+"/restore", jsonType, ""), http.StatusOK)
 	assertStatus(t, call(t, http.MethodDelete, server.URL+note, jsonType, ""), http.StatusNoContent)

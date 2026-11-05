@@ -1,6 +1,10 @@
 package httpapi
 
-import "github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/application"
+import (
+	"time"
+
+	"github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/application"
+)
 
 func toCreateNoteCommand(request CreateNoteRequestDTO) application.CreateNoteCommand {
 	return application.CreateNoteCommand{Title: request.Title, Body: request.Body}
@@ -20,6 +24,10 @@ func toRestoreNoteCommand(noteID string) application.RestoreNoteCommand {
 
 func toDeleteNoteCommand(noteID string) application.DeleteNoteCommand {
 	return application.DeleteNoteCommand{NoteID: noteID}
+}
+
+func toScheduleReminderCommand(noteID string, remindAt time.Time) application.ScheduleReminderCommand {
+	return application.ScheduleReminderCommand{}
 }
 
 func toGetNoteQuery(noteID string) application.GetNoteQuery {

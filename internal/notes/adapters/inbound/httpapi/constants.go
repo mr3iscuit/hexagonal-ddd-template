@@ -61,9 +61,10 @@ const (
 	queryLocation     = "query"
 	locationSeparator = "."
 
-	titleField = "title"
-	bodyField  = "body"
-	jsonNull   = "null"
+	titleField    = "title"
+	bodyField     = "body"
+	remindAtField = "remindAt"
+	jsonNull      = "null"
 
 	charsetParameter = "charset"
 	utf8Charset      = "utf-8"

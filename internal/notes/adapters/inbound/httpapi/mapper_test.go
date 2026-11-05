@@ -17,6 +17,7 @@ func TestRequiredFieldListsMatchTheJSONTags(t *testing.T) {
 	}{
 		{CreateNoteRequestDTO{}, createNoteRequestFields},
 		{EditNoteRequestDTO{}, editNoteRequestFields},
+		{ScheduleReminderRequestDTO{}, scheduleReminderRequestFields},
 	}
 	for _, testCase := range testCases {
 		var tags []string
@@ -34,6 +35,10 @@ func TestRequestMappersKeepEveryField(t *testing.T) {
 		t.Errorf("got %+v", got)
 	}
 	if got, want := toEditNoteCommand("id", EditNoteRequestDTO{Title: "a", Body: "b"}), (application.EditNoteCommand{NoteID: "id", Title: "a", Body: "b"}); got != want {
+		t.Errorf("got %+v", got)
+	}
+	remindAt := time.Date(2026, time.March, 4, 9, 30, 0, 0, time.UTC)
+	if got, want := toScheduleReminderCommand("id", remindAt), (application.ScheduleReminderCommand{NoteID: "id", RemindAt: remindAt}); got != want {
 		t.Errorf("got %+v", got)
 	}
 	if got, want := toListNotesQuery(true), (application.ListNotesQuery{Archived: true}); got != want {
