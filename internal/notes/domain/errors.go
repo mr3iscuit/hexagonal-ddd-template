@@ -21,5 +21,6 @@ var (
 	// These faults can never come from a client, so they have no HTTP form.
 	errNoteNotCreated     = errors.New("note was never created")
 	errNoteTimeMissing    = errors.New("note has no time")
+	errReminderNotDue     = errors.New("reminder is not due yet")
 	errNoteVersionInvalid = errors.New("stored note has no valid version")
 )

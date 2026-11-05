@@ -108,6 +108,9 @@ MUTATIONS = [
     ("scheduling counts as an edit", DOMAIN + "note.go", "note.remindAt = remindAt\n", "note.remindAt = remindAt\n\tnote.editedAt = scheduledAt\n"),
     ("cancelling counts as an edit", DOMAIN + "note.go", "note.remindAt = time.Time{}\n\treturn note.recording(ReminderCancelled", "note.remindAt = time.Time{}\n\tnote.editedAt = cancelledAt\n\treturn note.recording(ReminderCancelled"),
     ("triggering counts as an edit", DOMAIN + "note.go", "note.remindAt = time.Time{}\n\treturn note.recording(ReminderTriggered", "note.remindAt = time.Time{}\n\tnote.editedAt = triggeredAt\n\treturn note.recording(ReminderTriggered"),
+    ("a reminder can trigger early", DOMAIN + "note.go", "if triggeredAt.Before(note.remindAt) {", "if false {"),
+    ("exactly on time isn't due", DOMAIN + "note.go", "if triggeredAt.Before(note.remindAt) {", "if !triggeredAt.After(note.remindAt) {"),
+    ("a missing reminder can trigger", DOMAIN + "note.go", "if note.remindAt.IsZero() {\n\t\treturn Note{}, ErrNoReminderScheduled\n\t}\n\tif triggeredAt", "if false {\n\t\treturn Note{}, ErrNoReminderScheduled\n\t}\n\tif triggeredAt"),
 ]
 
 

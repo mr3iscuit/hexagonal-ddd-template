@@ -93,6 +93,12 @@ func (note Note) CancelReminder(cancelledAt time.Time) (Note, error) {
 
 // TriggerReminder fires a reminder that has come due, and removes it.
 func (note Note) TriggerReminder(triggeredAt time.Time) (Note, error) {
+	if note.remindAt.IsZero() {
+		return Note{}, ErrNoReminderScheduled
+	}
+	if triggeredAt.Before(note.remindAt) {
+		return Note{}, errReminderNotDue
+	}
 	note.remindAt = time.Time{}
 	return note.recording(ReminderTriggered{noteEvent{note.id, triggeredAt}}), nil
 }
