@@ -110,6 +110,65 @@ test/e2e/                      the real binary over real HTTP
 
 Dependencies point inward: adapters to application to domain. `test/architecture` fails if any rule is broken, and each rule is proved against a planted violation in `testdata`.
 
+## Adding a Feature
+
+Work from the inside out, because each layer depends only on the one inside it. Business rules go in the domain, never in a handler or a use case. A use case only runs the steps in order, as `CreateNote` does.
+
+| Step | Where | What to add |
+| --- | --- | --- |
+| 1. Language | `docs/domain/notes-glossary.md` | Each new term, rule and event. A rule nobody has confirmed goes under Assumptions To Confirm |
+| 2. Domain | `internal/notes/domain/` | A value object, or a behaviour on `Note` that returns a new `Note` and calls `requireChange`. A past-tense event, with its name in `constants.go`. Errors in `errors.go`. New state also goes through `ReconstituteNote` |
+| 3. Storage | `internal/notes/adapters/outbound/memory/` | New state in `noteRecord`, `toRecord` and `toDomain`. A new kind of read or write also goes on `NoteRepositoryPort` |
+| 4. Application | `internal/notes/application/` | A command or query in its own file, a method on `NoteUseCasesPort`, the use case on `NoteApplicationService`, and new output in `NoteViewDTO` and `mapper.go` |
+| 5. HTTP | `internal/notes/adapters/inbound/httpapi/` | A route in `Register`, wrapped in `withoutBody` if it takes no body. Request and response DTOs, mappers in `mapper.go`, and for each new core error, a code in `constants.go` and a row in `businessErrors` |
+| 6. Documents | `README.md` | The API and error tables, and any gap you chose to leave |
+
+Each step is test-first:
+
+1. Write one failing test, and watch it fail. Add the name first without the rule, so that it fails on an assertion rather than a compile error.
+2. Write the smallest code that passes.
+3. Refactor while the tests stay green.
+
+Name tests in domain language, such as `TestRejectsEditingAnArchivedNote`. Some changes need a particular test:
+
+| Change | Test |
+| --- | --- |
+| A new rule | Both sides of any limit, and an entry in `MUTATIONS` in `scripts/verify_mutations.py` for each way to break it |
+| A new behaviour on `Note` | An entry in `TestANoteThatWasNeverCreatedRefusesEveryBehaviour` and `TestEveryBehaviourRefusesAChangeWithNoTime` |
+| A new mapper or field | A test that checks every field, because a forgotten field compiles and just comes through empty |
+| A new failure | A row in `TestEveryFailureReturnsTheStandardErrorResponse`. A new exported error also fails `TestEveryCoreErrorHasARowInBusinessErrors` until `businessErrors` has its row |
+| A new field in a note response | `TestANoteHasExactlyItsDocumentedFields` |
+| A new field in a request | Its list beside the DTO, which `TestRequiredFieldListsMatchTheJSONTags` compares with the JSON tags |
+| A new main flow | A step in `test/e2e/server_test.go`, which runs the real binary |
+
+`test/architecture` checks the other rules for you, including names, one type per file, constants, pointers and imports. A failure there names the file and the rule.
+
+Two kinds of feature work differently:
+
+- **A new technology:** write an adapter that implements the existing port, named after its technology, such as `PostgresNoteRepository` in `adapters/outbound/postgres`. It must keep the port's promises, including the version check and storing events with the note. Only `cmd/api/main.go` changes, because it's the only place that picks adapters. A technology other than Postgres also needs adding to `outboundName` in `test/architecture/rules_test.go`.
+- **A new business area:** give it its own bounded context in `internal/<context>/`, with the same folders and a glossary in `docs/domain/`, and wire it in `cmd/api/main.go`. Contexts never import each other.
+
+## Maintaining the Repo
+
+Nothing runs the checks automatically yet, so run `make test`, `make mutations` and `make lint` before every commit, and start the service with `make run` if the change reaches the API. `make lint` only runs `go vet`, so run `staticcheck ./...` too if you have it installed.
+
+| Failure | Meaning | What to do |
+| --- | --- | --- |
+| A test in `test/architecture` | The code breaks a design rule | Fix the code. Change a rule only when the design itself changes |
+| `SURVIVED` from `make mutations` | A rule can break without a test noticing | Add the missing test |
+| `INVALID` from `make mutations` | The mutation doesn't compile | Fix its entry in `MUTATIONS` |
+| `the original text is missing` from `make mutations` | The code a mutation targets has changed | Update its entry rather than deleting it |
+
+Keep to these habits:
+
+- **Whole changes:** keep the code, tests, mutations and documents for a change in the same commit.
+- **Published names:** error codes, event names, routes and JSON fields are contracts, so never rename one. Add the new name, and remove the old one only when nothing uses it. `detail` text can change, because clients must not depend on it.
+- **Documents:** the glossary must match the code, so if they disagree, fix one of them. Move an assumption into the rules once it's confirmed, and remove a known gap once it's closed.
+- **Removing a feature:** remove it from every layer, along with its tests, mutations and documents. If a test only used it as an example of a change, move that test to another behaviour rather than losing it. Then search the repo for its name.
+- **New architecture rules:** add each one to `rules()` with a planted violation in `test/architecture/testdata/violations`, because a rule that can't fail proves nothing.
+- **Dependencies:** `domain` and `application` use only the standard library, and a framework stays in the inbound adapter. Run `go mod tidy` after adding or removing one.
+- **Reliable tests:** a test must fail every time its rule breaks, so test time rules with a fake clock and give fakes a fixed order. Only call `t.Fatal` on the test goroutine.
+
 ## Known Gaps
 
 - **Storage:** notes are kept in memory, so they are lost on restart, and the server holds at most 10,000.
