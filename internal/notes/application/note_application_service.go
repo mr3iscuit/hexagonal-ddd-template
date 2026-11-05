@@ -108,7 +108,18 @@ func (service NoteApplicationService) DeleteNote(ctx context.Context, command De
 }
 
 func (service NoteApplicationService) ScheduleReminder(ctx context.Context, command ScheduleReminderCommand) (NoteViewDTO, error) {
-	return NoteViewDTO{}, nil
+	note, err := service.load(ctx, command.NoteID)
+	if err != nil {
+		return NoteViewDTO{}, err
+	}
+	scheduled, err := note.ScheduleReminder(command.RemindAt, service.clock.Now())
+	if err != nil {
+		return NoteViewDTO{}, err
+	}
+	if err := service.noteRepository.Save(ctx, scheduled); err != nil {
+		return NoteViewDTO{}, err
+	}
+	return toNoteViewDTO(scheduled), nil
 }
 
 func (service NoteApplicationService) GetNote(ctx context.Context, query GetNoteQuery) (NoteViewDTO, error) {

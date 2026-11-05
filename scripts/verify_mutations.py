@@ -119,6 +119,9 @@ MUTATIONS = [
     ("a reminder due now isn't listed", MEMORY + "in_memory_note_repository.go", "!record.remindAt.IsZero() && !record.remindAt.After(now)", "!record.remindAt.IsZero() && record.remindAt.Before(now)"),
     ("a note with no reminder is listed as due", MEMORY + "in_memory_note_repository.go", "!record.remindAt.IsZero() && !record.remindAt.After(now)", "!record.remindAt.After(now)"),
     ("a reminder that isn't due is listed", MEMORY + "in_memory_note_repository.go", "!record.remindAt.IsZero() && !record.remindAt.After(now)", "!record.remindAt.IsZero()"),
+    ("the view loses the reminder", APPLICATION + "mapper.go", "RemindAt:  note.RemindAt(),", "RemindAt:  note.CreatedAt(),"),
+    ("a scheduled reminder isn't saved", APPLICATION + "note_application_service.go", "if err := service.noteRepository.Save(ctx, scheduled); err != nil {", "if err := error(nil); err != nil {"),
+    ("a refused reminder is saved", APPLICATION + "note_application_service.go", "scheduled, err := note.ScheduleReminder(command.RemindAt, service.clock.Now())\n\tif err != nil {", "scheduled, err := note.ScheduleReminder(command.RemindAt, service.clock.Now())\n\tif false {"),
 ]
 
 
