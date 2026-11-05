@@ -55,6 +55,12 @@ func TestAReminderMustBeInTheFuture(t *testing.T) {
 	}
 }
 
+func TestRejectsSchedulingAReminderOnAnArchivedNote(t *testing.T) {
+	if _, err := archived(t).ScheduleReminder(remindAt, changedAt); !errors.Is(err, domain.ErrNoteArchived) {
+		t.Errorf("err = %v", err)
+	}
+}
+
 func TestSchedulingAgainReplacesTheReminder(t *testing.T) {
 	later := remindAt.Add(time.Hour)
 	note, err := withReminder(t).ScheduleReminder(later, changedAt)
