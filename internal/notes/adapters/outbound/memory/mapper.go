@@ -33,7 +33,7 @@ func toDomain(record noteRecord) (domain.Note, error) {
 	if err != nil {
 		return domain.Note{}, fmt.Errorf(damagedBodyFormat, err)
 	}
-	note, err := domain.ReconstituteNote(id, title, body, record.archived, record.createdAt, record.editedAt, record.version)
+	note, err := domain.ReconstituteNote(id, title, body, record.archived, record.remindAt, record.createdAt, record.editedAt, record.version)
 	if err != nil {
 		return domain.Note{}, fmt.Errorf(damagedNoteFormat, err)
 	}

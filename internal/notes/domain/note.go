@@ -38,7 +38,7 @@ func NewNote(id NoteID, title Title, body Body, createdAt time.Time) (Note, erro
 
 // ReconstituteNote rebuilds a stored Note. It checks structure only, so a later
 // change to a business rule can't make saved data look damaged.
-func ReconstituteNote(id NoteID, title Title, body Body, archived bool, createdAt, editedAt time.Time, version int) (Note, error) {
+func ReconstituteNote(id NoteID, title Title, body Body, archived bool, remindAt, createdAt, editedAt time.Time, version int) (Note, error) {
 	if id.IsZero() {
 		return Note{}, ErrNoteIDRequired
 	}

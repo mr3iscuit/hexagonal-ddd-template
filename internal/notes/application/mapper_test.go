@@ -22,7 +22,7 @@ func TestViewMappingKeepsEveryField(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	note, err := domain.ReconstituteNote(id, title, body, true, createdAt, editedAt, 1)
+	note, err := domain.ReconstituteNote(id, title, body, true, time.Time{}, createdAt, editedAt, 1)
 	if err != nil {
 		t.Fatal(err)
 	}

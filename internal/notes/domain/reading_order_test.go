@@ -10,7 +10,7 @@ import (
 
 func storedNote(t *testing.T, id string, editedAt time.Time) domain.Note {
 	t.Helper()
-	note, err := domain.ReconstituteNote(noteID(t, id), title(t, id), domain.Body{}, false, createdAt, editedAt, 1)
+	note, err := domain.ReconstituteNote(noteID(t, id), title(t, id), domain.Body{}, false, time.Time{}, createdAt, editedAt, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
