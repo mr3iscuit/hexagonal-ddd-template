@@ -73,6 +73,9 @@ func (note Note) Edit(title Title, body Body, editedAt time.Time) (Note, error) 
 
 // ScheduleReminder asks to be reminded about the note at remindAt.
 func (note Note) ScheduleReminder(remindAt, scheduledAt time.Time) (Note, error) {
+	if err := note.requireChange(scheduledAt); err != nil {
+		return Note{}, err
+	}
 	if note.archived {
 		return Note{}, ErrNoteArchived
 	}
@@ -85,6 +88,9 @@ func (note Note) ScheduleReminder(remindAt, scheduledAt time.Time) (Note, error)
 
 // CancelReminder removes the reminder.
 func (note Note) CancelReminder(cancelledAt time.Time) (Note, error) {
+	if err := note.requireChange(cancelledAt); err != nil {
+		return Note{}, err
+	}
 	if note.remindAt.IsZero() {
 		return Note{}, ErrNoReminderScheduled
 	}
@@ -93,6 +99,9 @@ func (note Note) CancelReminder(cancelledAt time.Time) (Note, error) {
 
 // TriggerReminder fires a reminder that has come due, and removes it.
 func (note Note) TriggerReminder(triggeredAt time.Time) (Note, error) {
+	if err := note.requireChange(triggeredAt); err != nil {
+		return Note{}, err
+	}
 	if note.remindAt.IsZero() {
 		return Note{}, ErrNoReminderScheduled
 	}
