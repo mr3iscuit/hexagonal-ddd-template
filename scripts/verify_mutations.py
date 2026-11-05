@@ -122,6 +122,7 @@ MUTATIONS = [
     ("the view loses the reminder", APPLICATION + "mapper.go", "RemindAt:  note.RemindAt(),", "RemindAt:  note.CreatedAt(),"),
     ("a scheduled reminder isn't saved", APPLICATION + "note_application_service.go", "if err := service.noteRepository.Save(ctx, scheduled); err != nil {", "if err := error(nil); err != nil {"),
     ("a refused reminder is saved", APPLICATION + "note_application_service.go", "scheduled, err := note.ScheduleReminder(command.RemindAt, service.clock.Now())\n\tif err != nil {", "scheduled, err := note.ScheduleReminder(command.RemindAt, service.clock.Now())\n\tif false {"),
+    ("a cancelled reminder isn't saved", APPLICATION + "note_application_service.go", "if err := service.noteRepository.Save(ctx, cancelled); err != nil {", "if err := error(nil); err != nil {"),
 ]
 
 
