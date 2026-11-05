@@ -61,6 +61,23 @@ func TestRejectsSchedulingAReminderOnAnArchivedNote(t *testing.T) {
 	}
 }
 
+func TestCancellingAReminderClearsIt(t *testing.T) {
+	scheduled := withReminder(t)
+	note, err := scheduled.CancelReminder(changedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !note.RemindAt().IsZero() {
+		t.Errorf("remindAt = %v", note.RemindAt())
+	}
+	if !slices.Equal(eventNames(note), []string{"note.created", "reminder.scheduled", "reminder.cancelled"}) {
+		t.Errorf("events = %v", eventNames(note))
+	}
+	if !scheduled.RemindAt().Equal(remindAt) {
+		t.Error("the original note changed")
+	}
+}
+
 func TestSchedulingAgainReplacesTheReminder(t *testing.T) {
 	later := remindAt.Add(time.Hour)
 	note, err := withReminder(t).ScheduleReminder(later, changedAt)

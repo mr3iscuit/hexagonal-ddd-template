@@ -83,6 +83,11 @@ func (note Note) ScheduleReminder(remindAt, scheduledAt time.Time) (Note, error)
 	return note.recording(ReminderScheduled{noteEvent{note.id, scheduledAt}}), nil
 }
 
+// CancelReminder removes the reminder.
+func (note Note) CancelReminder(cancelledAt time.Time) (Note, error) {
+	return note, nil
+}
+
 // Archive puts the note away.
 func (note Note) Archive(archivedAt time.Time) (Note, error) {
 	if err := note.requireChange(archivedAt); err != nil {

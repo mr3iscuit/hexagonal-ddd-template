@@ -14,4 +14,5 @@ const (
 	noteDeletedEventName  = "note.deleted"
 
 	reminderScheduledEventName = "reminder.scheduled"
+	reminderCancelledEventName = "reminder.cancelled"
 )
