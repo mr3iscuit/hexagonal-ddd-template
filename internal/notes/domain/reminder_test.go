@@ -125,6 +125,22 @@ func TestADueReminderTriggers(t *testing.T) {
 	}
 }
 
+func TestAReminderCannotTriggerEarly(t *testing.T) {
+	_, err := withReminder(t).TriggerReminder(remindAt.Add(-time.Nanosecond))
+	if err == nil {
+		t.Fatal("the reminder triggered early")
+	}
+	if errors.Is(err, domain.ErrNoReminderScheduled) {
+		t.Errorf("err = %v", err)
+	}
+}
+
+func TestRejectsTriggeringWithoutAReminder(t *testing.T) {
+	if _, err := newNote(t).TriggerReminder(remindAt); !errors.Is(err, domain.ErrNoReminderScheduled) {
+		t.Errorf("err = %v", err)
+	}
+}
+
 func TestRemindersDoNotCountAsEdits(t *testing.T) {
 	scheduled := withReminder(t)
 	cancelled, err := scheduled.CancelReminder(changedAt)

@@ -22,7 +22,7 @@ The language of the `notes` bounded context. Names in the code must match this p
 | `Edit` | Replaces the title and body, and moves the edit time forward | `ErrNoteArchived`, `ErrTitleRequired` |
 | `ScheduleReminder` | Sets the reminder, replacing any earlier one. Its time must be strictly after now, and the note must be active | `ErrReminderNotInFuture`, `ErrNoteArchived` |
 | `CancelReminder` | Removes the reminder, so one must be scheduled | `ErrNoReminderScheduled` |
-| `TriggerReminder` | Fires a reminder that has come due, and removes it. Exactly on time counts as due | |
+| `TriggerReminder` | Fires a reminder that has come due, and removes it. Exactly on time counts as due | `ErrNoReminderScheduled` |
 | `Archive` | Only an active note, and it cancels any reminder | `ErrNoteAlreadyArchived` |
 | `Restore` | Only an archived note, and it doesn't bring a reminder back | `ErrNoteNotArchived` |
 | `Delete` | Any note, whether active or archived | |
