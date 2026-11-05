@@ -36,6 +36,7 @@ func toNoteResponseDTO(view application.NoteViewDTO) NoteResponseDTO {
 		Title:     view.Title,
 		Body:      view.Body,
 		Archived:  view.Archived,
+		RemindAt:  view.RemindAt.UTC(),
 		CreatedAt: view.CreatedAt.UTC(),
 		EditedAt:  view.EditedAt.UTC(),
 	}

@@ -128,6 +128,8 @@ MUTATIONS = [
     ("a conflict stops the reminder check", APPLICATION + "note_application_service.go", "if errors.Is(err, ErrNoteModifiedConcurrently) {", "if errors.Is(err, ErrNoteModifiedConcurrently) && false {"),
     ("a storage failure doesn't stop the reminder check", APPLICATION + "note_application_service.go", "if err != nil {\n\t\t\treturn triggered, err\n\t\t}\n\t\ttriggered++", "if err != nil {\n\t\t\tcontinue\n\t\t}\n\t\ttriggered++"),
     ("triggered reminders aren't counted", APPLICATION + "note_application_service.go", "\t\ttriggered++\n", ""),
+    ("a reminder keeps its time zone", HTTP + "mapper.go", "RemindAt:  view.RemindAt.UTC(),", "RemindAt:  view.RemindAt,"),
+    ("a note with no reminder shows a zero time", HTTP + "note_response_dto.go", 'json:"remindAt,omitzero"', 'json:"remindAt"'),
 ]
 
 
