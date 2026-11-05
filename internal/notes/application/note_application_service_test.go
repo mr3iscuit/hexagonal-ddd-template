@@ -83,6 +83,10 @@ func (repository *fakeRepository) List(_ context.Context, archived bool) ([]doma
 	return notes, nil
 }
 
+func (repository *fakeRepository) ListDueReminders(context.Context, time.Time) ([]domain.Note, error) {
+	return nil, nil
+}
+
 type fixture struct {
 	service    application.NoteApplicationService
 	repository *fakeRepository

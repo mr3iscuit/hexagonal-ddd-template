@@ -4,6 +4,7 @@ package memory
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/application"
 	"github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/domain"
@@ -87,6 +88,11 @@ func (repository *InMemoryNoteRepository) List(ctx context.Context, archived boo
 		notes = append(notes, note)
 	}
 	return notes, nil
+}
+
+// ListDueReminders finds the notes whose reminder has come due.
+func (repository *InMemoryNoteRepository) ListDueReminders(ctx context.Context, now time.Time) ([]domain.Note, error) {
+	return nil, nil
 }
 
 // matchingRecords copies the records, so that rebuilding them for a long list

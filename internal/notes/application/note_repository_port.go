@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"time"
 
 	"github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/domain"
 )
@@ -14,4 +15,5 @@ type NoteRepositoryPort interface {
 	Remove(ctx context.Context, note domain.Note) error
 	FindByID(ctx context.Context, id domain.NoteID) (domain.Note, error)
 	List(ctx context.Context, archived bool) ([]domain.Note, error)
+	ListDueReminders(ctx context.Context, now time.Time) ([]domain.Note, error)
 }
