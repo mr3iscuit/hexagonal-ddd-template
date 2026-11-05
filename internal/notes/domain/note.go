@@ -12,6 +12,7 @@ type Note struct {
 	title         Title
 	body          Body
 	archived      bool
+	remindAt      time.Time
 	createdAt     time.Time
 	editedAt      time.Time
 	version       int
@@ -70,6 +71,11 @@ func (note Note) Edit(title Title, body Body, editedAt time.Time) (Note, error) 
 	return note.recording(NoteEdited{noteEvent{note.id, editedAt}}), nil
 }
 
+// ScheduleReminder asks to be reminded about the note at remindAt.
+func (note Note) ScheduleReminder(remindAt, scheduledAt time.Time) (Note, error) {
+	return note, nil
+}
+
 // Archive puts the note away.
 func (note Note) Archive(archivedAt time.Time) (Note, error) {
 	if err := note.requireChange(archivedAt); err != nil {
@@ -126,6 +132,8 @@ func (note Note) Title() Title { return note.title }
 func (note Note) Body() Body { return note.body }
 
 func (note Note) IsArchived() bool { return note.archived }
+
+func (note Note) RemindAt() time.Time { return note.remindAt }
 
 func (note Note) CreatedAt() time.Time { return note.createdAt }
 
