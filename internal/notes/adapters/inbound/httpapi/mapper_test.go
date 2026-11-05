@@ -44,7 +44,7 @@ func TestRequestMappersKeepEveryField(t *testing.T) {
 	if got, want := toListNotesQuery(true), (application.ListNotesQuery{Archived: true}); got != want {
 		t.Errorf("got %+v", got)
 	}
-	if toArchiveNoteCommand("id").NoteID != "id" ||
+	if toArchiveNoteCommand("id").NoteID != "id" || toCancelReminderCommand("id").NoteID != "id" ||
 		toRestoreNoteCommand("id").NoteID != "id" || toDeleteNoteCommand("id").NoteID != "id" || toGetNoteQuery("id").NoteID != "id" {
 		t.Error("a mapper lost the note ID")
 	}

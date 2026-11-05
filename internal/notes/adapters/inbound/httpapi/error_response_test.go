@@ -50,6 +50,9 @@ func TestEveryFailureReturnsTheStandardErrorResponse(t *testing.T) {
 		{"a reminder time with no offset", http.MethodPut, note + "/reminder", jsonType, `{"remindAt":"2999-01-02T03:04:05"}`, http.StatusUnprocessableEntity, technical, "VALIDATION_FAILED"},
 		{"a reminder time of the wrong type", http.MethodPut, note + "/reminder", jsonType, `{"remindAt":1}`, http.StatusUnprocessableEntity, technical, "VALIDATION_FAILED"},
 		{"a missing reminder time", http.MethodPut, note + "/reminder", jsonType, `{}`, http.StatusUnprocessableEntity, technical, "VALIDATION_FAILED"},
+		{"cancelling on an unknown note", http.MethodDelete, "/notes/missing/reminder", jsonType, "", http.StatusNotFound, business, "NOTE_NOT_FOUND"},
+		{"cancelling with no reminder", http.MethodDelete, note + "/reminder", jsonType, "", http.StatusConflict, business, "NOTE_REMINDER_NOT_SCHEDULED"},
+		{"a body on cancelling a reminder", http.MethodDelete, note + "/reminder", jsonType, "x", http.StatusUnprocessableEntity, technical, "VALIDATION_FAILED"},
 		{"blank note ID", http.MethodGet, "/notes/%20", jsonType, "", http.StatusUnprocessableEntity, business, "NOTE_ID_REQUIRED"},
 		{"blank title", http.MethodPost, "/notes", jsonType, `{"title":"  ","body":""}`, http.StatusUnprocessableEntity, business, "NOTE_TITLE_REQUIRED"},
 		{"blank title on edit", http.MethodPut, note, jsonType, `{"title":"","body":""}`, http.StatusUnprocessableEntity, business, "NOTE_TITLE_REQUIRED"},
@@ -113,13 +116,14 @@ func TestEveryFailureReturnsTheStandardErrorResponse(t *testing.T) {
 func TestAMethodNotAllowedResponseListsTheAllowedMethods(t *testing.T) {
 	server := newServer(t)
 	testCases := map[string]string{
-		"/notes":                   "GET, POST",
-		"/notes/some-note":         "GET, PUT, DELETE",
-		"/notes/some-note/archive": "POST",
-		"/healthz":                 "GET",
-		"/notes/a%2Fb":             "GET, PUT, DELETE",
-		"/notes/a%2Farchive":       "GET, PUT, DELETE",
-		"/notes/%41BC/archive":     "POST",
+		"/notes":                    "GET, POST",
+		"/notes/some-note":          "GET, PUT, DELETE",
+		"/notes/some-note/archive":  "POST",
+		"/notes/some-note/reminder": "PUT, DELETE",
+		"/healthz":                  "GET",
+		"/notes/a%2Fb":              "GET, PUT, DELETE",
+		"/notes/a%2Farchive":        "GET, PUT, DELETE",
+		"/notes/%41BC/archive":      "POST",
 	}
 	for path, allowed := range testCases {
 		response := call(t, http.MethodPatch, server.URL+path, jsonType, "")

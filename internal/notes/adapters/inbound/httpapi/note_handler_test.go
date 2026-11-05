@@ -106,6 +106,17 @@ func TestSchedulingAReminderOverHTTP(t *testing.T) {
 	}
 }
 
+func TestCancellingAReminderOverHTTP(t *testing.T) {
+	server := newServer(t)
+	note := createNote(t, server)
+	assertStatus(t, call(t, http.MethodPut, server.URL+note+"/reminder", jsonType, futureReminder), http.StatusOK)
+	cancelled := call(t, http.MethodDelete, server.URL+note+"/reminder", jsonType, "")
+	assertStatus(t, cancelled, http.StatusOK)
+	if _, present := cancelled.body["remindAt"]; present || cancelled.body["title"] != "Groceries" {
+		t.Errorf("cancelled = %v", cancelled.body)
+	}
+}
+
 func TestTimesLeaveTheAPIInUTC(t *testing.T) {
 	server := newServer(t)
 	created := call(t, http.MethodPost, server.URL+"/notes", jsonType, groceries)
@@ -221,6 +232,7 @@ func TestEveryRouteDecodesAPercentEncodedID(t *testing.T) {
 	assertStatus(t, call(t, http.MethodGet, server.URL+note, jsonType, ""), http.StatusOK)
 	assertStatus(t, call(t, http.MethodPut, server.URL+note, jsonType, groceries), http.StatusOK)
 	assertStatus(t, call(t, http.MethodPut, server.URL+note+"/reminder", jsonType, futureReminder), http.StatusOK)
+	assertStatus(t, call(t, http.MethodDelete, server.URL+note+"/reminder", jsonType, ""), http.StatusOK)
 	assertStatus(t, call(t, http.MethodPost, server.URL+note+"/archive", jsonType, ""), http.StatusOK)
 	assertStatus(t, call(t, http.MethodPost, server.URL+note+"/restore", jsonType, ""), http.StatusOK)
 	assertStatus(t, call(t, http.MethodDelete, server.URL+note, jsonType, ""), http.StatusNoContent)
