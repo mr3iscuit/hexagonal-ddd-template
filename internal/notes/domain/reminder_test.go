@@ -112,6 +112,36 @@ func TestRestoringDoesNotBringAReminderBack(t *testing.T) {
 	}
 }
 
+func TestADueReminderTriggers(t *testing.T) {
+	note, err := withReminder(t).TriggerReminder(remindAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !note.RemindAt().IsZero() {
+		t.Errorf("remindAt = %v", note.RemindAt())
+	}
+	if !slices.Equal(eventNames(note), []string{"note.created", "reminder.scheduled", "reminder.triggered"}) {
+		t.Errorf("events = %v", eventNames(note))
+	}
+}
+
+func TestRemindersDoNotCountAsEdits(t *testing.T) {
+	scheduled := withReminder(t)
+	cancelled, err := scheduled.CancelReminder(changedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	triggered, err := scheduled.TriggerReminder(remindAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, note := range map[string]domain.Note{"scheduled": scheduled, "cancelled": cancelled, "triggered": triggered} {
+		if !note.EditedAt().Equal(createdAt) {
+			t.Errorf("%s: editedAt = %v", name, note.EditedAt())
+		}
+	}
+}
+
 func TestSchedulingAgainReplacesTheReminder(t *testing.T) {
 	later := remindAt.Add(time.Hour)
 	note, err := withReminder(t).ScheduleReminder(later, changedAt)

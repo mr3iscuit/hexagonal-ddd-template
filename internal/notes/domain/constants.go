@@ -15,4 +15,5 @@ const (
 
 	reminderScheduledEventName = "reminder.scheduled"
 	reminderCancelledEventName = "reminder.cancelled"
+	reminderTriggeredEventName = "reminder.triggered"
 )

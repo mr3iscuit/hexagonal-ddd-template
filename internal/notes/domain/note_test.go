@@ -273,6 +273,7 @@ func TestPublishedEventNamesNeverChange(t *testing.T) {
 		"note.deleted":       domain.NoteDeleted{},
 		"reminder.scheduled": domain.ReminderScheduled{},
 		"reminder.cancelled": domain.ReminderCancelled{},
+		"reminder.triggered": domain.ReminderTriggered{},
 	}
 	for name, event := range want {
 		if event.EventName() != name {

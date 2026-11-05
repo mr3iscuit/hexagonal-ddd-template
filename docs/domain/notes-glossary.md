@@ -22,6 +22,7 @@ The language of the `notes` bounded context. Names in the code must match this p
 | `Edit` | Replaces the title and body, and moves the edit time forward | `ErrNoteArchived`, `ErrTitleRequired` |
 | `ScheduleReminder` | Sets the reminder, replacing any earlier one. Its time must be strictly after now, and the note must be active | `ErrReminderNotInFuture`, `ErrNoteArchived` |
 | `CancelReminder` | Removes the reminder, so one must be scheduled | `ErrNoReminderScheduled` |
+| `TriggerReminder` | Fires a reminder that has come due, and removes it. Exactly on time counts as due | |
 | `Archive` | Only an active note, and it cancels any reminder | `ErrNoteAlreadyArchived` |
 | `Restore` | Only an archived note, and it doesn't bring a reminder back | `ErrNoteNotArchived` |
 | `Delete` | Any note, whether active or archived | |
@@ -36,7 +37,8 @@ The language of the `notes` bounded context. Names in the code must match this p
 | `NoteRestored` | `note.restored` | A note was restored |
 | `NoteDeleted` | `note.deleted` | A note was deleted |
 | `ReminderScheduled` | `reminder.scheduled` | A reminder was set on a note |
-| `ReminderCancelled` | `reminder.cancelled` | A note's reminder was removed |
+| `ReminderCancelled` | `reminder.cancelled` | A note's reminder was removed, directly or by archiving the note |
+| `ReminderTriggered` | `reminder.triggered` | A note's reminder came due |
 
 ## Assumptions To Confirm
 
@@ -45,7 +47,7 @@ No business rules were supplied for this service, so each of these is a choice t
 - The limits of 200 and 10,000 characters are placeholders. Characters are Unicode code points, not bytes.
 - Invisible characters don't count as a title: format characters, combining marks and spaces show nothing by themselves. Characters that look blank but count as letters or symbols, such as a Hangul filler, aren't detected.
 - A title can't contain a tab, a line break, a Unicode line or paragraph separator, or any other control character. A body can contain tabs, line feeds, carriage returns and Unicode line separators, but no other control character.
-- Archiving and restoring aren't edits, so they leave the edit time alone.
+- Archiving, restoring, and scheduling, cancelling or triggering a reminder aren't edits, so they leave the edit time alone.
 - An archived note is read-only, apart from restoring or deleting it.
 - Editing a note to the same content still counts as an edit.
 - Deleting is permanent, and any note can be deleted without archiving it first.
