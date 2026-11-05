@@ -123,6 +123,11 @@ MUTATIONS = [
     ("a scheduled reminder isn't saved", APPLICATION + "note_application_service.go", "if err := service.noteRepository.Save(ctx, scheduled); err != nil {", "if err := error(nil); err != nil {"),
     ("a refused reminder is saved", APPLICATION + "note_application_service.go", "scheduled, err := note.ScheduleReminder(command.RemindAt, service.clock.Now())\n\tif err != nil {", "scheduled, err := note.ScheduleReminder(command.RemindAt, service.clock.Now())\n\tif false {"),
     ("a cancelled reminder isn't saved", APPLICATION + "note_application_service.go", "if err := service.noteRepository.Save(ctx, cancelled); err != nil {", "if err := error(nil); err != nil {"),
+    ("the reminder check ignores a failed search", APPLICATION + "note_application_service.go", "notes, err := service.noteRepository.ListDueReminders(ctx, now)\n\tif err != nil {", "notes, err := service.noteRepository.ListDueReminders(ctx, now)\n\tif false {"),
+    ("the reminder check stores a refused trigger", APPLICATION + "note_application_service.go", "changed, err := note.TriggerReminder(now)\n\t\tif err != nil {", "changed, err := note.TriggerReminder(now)\n\t\tif false {"),
+    ("a conflict stops the reminder check", APPLICATION + "note_application_service.go", "if errors.Is(err, ErrNoteModifiedConcurrently) {", "if errors.Is(err, ErrNoteModifiedConcurrently) && false {"),
+    ("a storage failure doesn't stop the reminder check", APPLICATION + "note_application_service.go", "if err != nil {\n\t\t\treturn triggered, err\n\t\t}\n\t\ttriggered++", "if err != nil {\n\t\t\tcontinue\n\t\t}\n\t\ttriggered++"),
+    ("triggered reminders aren't counted", APPLICATION + "note_application_service.go", "\t\ttriggered++\n", ""),
 ]
 
 

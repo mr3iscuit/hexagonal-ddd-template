@@ -3,6 +3,7 @@ package application
 
 import (
 	"context"
+	"errors"
 
 	"github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/domain"
 )
@@ -140,7 +141,28 @@ func (service NoteApplicationService) CancelReminder(ctx context.Context, comman
 // TriggerDueReminders fires every reminder that has come due, and returns how
 // many it fired.
 func (service NoteApplicationService) TriggerDueReminders(ctx context.Context) (int, error) {
-	return 0, nil
+	now := service.clock.Now()
+	notes, err := service.noteRepository.ListDueReminders(ctx, now)
+	if err != nil {
+		return 0, err
+	}
+	triggered := 0
+	for _, note := range notes {
+		changed, err := note.TriggerReminder(now)
+		if err != nil {
+			return triggered, err
+		}
+		err = service.noteRepository.Save(ctx, changed)
+		// The note changed after it was listed, so the next check decides again.
+		if errors.Is(err, ErrNoteModifiedConcurrently) {
+			continue
+		}
+		if err != nil {
+			return triggered, err
+		}
+		triggered++
+	}
+	return triggered, nil
 }
 
 func (service NoteApplicationService) GetNote(ctx context.Context, query GetNoteQuery) (NoteViewDTO, error) {
