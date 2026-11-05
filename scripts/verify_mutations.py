@@ -60,7 +60,7 @@ MUTATIONS = [
     ("the ring overwrites one place", MEMORY + "in_memory_note_repository.go", "(repository.oldestOutboxRecord + 1) % maximumOutboxRecords", "(repository.oldestOutboxRecord + 0) % maximumOutboxRecords"),
     ("the ring runs off its end", MEMORY + "in_memory_note_repository.go", "(repository.oldestOutboxRecord + 1) % maximumOutboxRecords", "repository.oldestOutboxRecord + 1"),
     ("a full outbox is copied", MEMORY + "in_memory_note_repository.go", "repository.outbox[repository.oldestOutboxRecord] = record\n", "repository.outbox = append([]outboxRecord{}, repository.outbox...)\n\t\trepository.outbox[repository.oldestOutboxRecord] = record\n"),
-    ("the list ignores archived notes", MEMORY + "in_memory_note_repository.go", "if record.archived == archived {", "if !record.archived {"),
+    ("the list ignores archived notes", MEMORY + "in_memory_note_repository.go", "return record.archived == archived", "return !record.archived"),
     ("damaged data is wrapped", MEMORY + "constants.go", '"stored note has a damaged title: %v"', '"stored note has a damaged title: %w"'),
     ("the note limit is gone", MEMORY + "in_memory_note_repository.go", "if note.Version() == 0 && len(repository.records) >= maximumNotes {", "if false && len(repository.records) >= maximumNotes {"),
     ("edits are refused at the note limit", MEMORY + "in_memory_note_repository.go", "if note.Version() == 0 && len(repository.records) >= maximumNotes {", "if len(repository.records) >= maximumNotes {"),

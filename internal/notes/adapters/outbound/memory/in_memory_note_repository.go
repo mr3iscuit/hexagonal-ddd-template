@@ -78,16 +78,9 @@ func (repository *InMemoryNoteRepository) List(ctx context.Context, archived boo
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	records := repository.matchingRecords(archived)
-	notes := make([]domain.Note, 0, len(records))
-	for _, record := range records {
-		note, err := toDomain(record)
-		if err != nil {
-			return nil, err
-		}
-		notes = append(notes, note)
-	}
-	return notes, nil
+	return toDomains(repository.recordsWhere(func(record noteRecord) bool {
+		return record.archived == archived
+	}))
 }
 
 // ListDueReminders finds the notes whose reminder has come due.
@@ -95,38 +88,19 @@ func (repository *InMemoryNoteRepository) ListDueReminders(ctx context.Context, 
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	records := repository.dueRecords(now)
-	notes := make([]domain.Note, 0, len(records))
-	for _, record := range records {
-		note, err := toDomain(record)
-		if err != nil {
-			return nil, err
-		}
-		notes = append(notes, note)
-	}
-	return notes, nil
+	return toDomains(repository.recordsWhere(func(record noteRecord) bool {
+		return !record.remindAt.IsZero() && !record.remindAt.After(now)
+	}))
 }
 
-// matchingRecords copies the records, so that rebuilding them for a long list
-// doesn't hold the lock that every other request needs.
-func (repository *InMemoryNoteRepository) matchingRecords(archived bool) []noteRecord {
-	repository.mutex.Lock()
-	defer repository.mutex.Unlock()
-	records := make([]noteRecord, 0, len(repository.records))
-	for _, record := range repository.records {
-		if record.archived == archived {
-			records = append(records, record)
-		}
-	}
-	return records
-}
-
-func (repository *InMemoryNoteRepository) dueRecords(now time.Time) []noteRecord {
+// recordsWhere copies the matching records, so that rebuilding them for a long
+// list doesn't hold the lock that every other request needs.
+func (repository *InMemoryNoteRepository) recordsWhere(matches func(noteRecord) bool) []noteRecord {
 	repository.mutex.Lock()
 	defer repository.mutex.Unlock()
 	var records []noteRecord
 	for _, record := range repository.records {
-		if !record.remindAt.IsZero() && !record.remindAt.After(now) {
+		if matches(record) {
 			records = append(records, record)
 		}
 	}

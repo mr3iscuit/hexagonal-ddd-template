@@ -41,6 +41,18 @@ func toDomain(record noteRecord) (domain.Note, error) {
 	return note, nil
 }
 
+func toDomains(records []noteRecord) ([]domain.Note, error) {
+	notes := make([]domain.Note, 0, len(records))
+	for _, record := range records {
+		note, err := toDomain(record)
+		if err != nil {
+			return nil, err
+		}
+		notes = append(notes, note)
+	}
+	return notes, nil
+}
+
 func toOutboxRecords(note domain.Note) []outboxRecord {
 	events := note.PendingEvents()
 	records := make([]outboxRecord, 0, len(events))
