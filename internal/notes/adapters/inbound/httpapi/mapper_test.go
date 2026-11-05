@@ -49,8 +49,8 @@ func TestResponseMappingKeepsEveryFieldAndConvertsToUTC(t *testing.T) {
 	zone := time.FixedZone("Baku", 4*60*60)
 	createdAt := time.Date(2026, time.January, 2, 3, 4, 5, 0, zone)
 	editedAt := createdAt.Add(time.Hour)
-	view := application.NoteViewDTO{ID: "id", Title: "a", Body: "b", Archived: true, CreatedAt: createdAt, EditedAt: editedAt}
-	want := NoteResponseDTO{ID: "id", Title: "a", Body: "b", Archived: true, CreatedAt: createdAt.UTC(), EditedAt: editedAt.UTC()}
+	view := application.NoteViewDTO{ID: "id", Title: "a", Body: "b", Archived: true, RemindAt: editedAt, CreatedAt: createdAt, EditedAt: editedAt}
+	want := NoteResponseDTO{ID: "id", Title: "a", Body: "b", Archived: true, RemindAt: editedAt.UTC(), CreatedAt: createdAt.UTC(), EditedAt: editedAt.UTC()}
 	if got := toNoteResponseDTO(view); got != want {
 		t.Errorf("got %+v, want %+v", got, want)
 	}

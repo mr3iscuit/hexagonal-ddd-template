@@ -183,8 +183,13 @@ func TestBusinessErrorsNeverEchoTheNoteID(t *testing.T) {
 type stubUseCases struct {
 	application.NoteUseCasesPort
 	createNote  func() (application.NoteViewDTO, error)
+	getNote     func() (application.NoteViewDTO, error)
 	archiveNote func() (application.NoteViewDTO, error)
 	listNotes   func() ([]application.NoteViewDTO, error)
+}
+
+func (stub stubUseCases) GetNote(context.Context, application.GetNoteQuery) (application.NoteViewDTO, error) {
+	return stub.getNote()
 }
 
 func (stub stubUseCases) CreateNote(context.Context, application.CreateNoteCommand) (application.NoteViewDTO, error) {

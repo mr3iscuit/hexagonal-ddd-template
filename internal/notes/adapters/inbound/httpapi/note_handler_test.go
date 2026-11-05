@@ -2,6 +2,7 @@ package httpapi_test
 
 import (
 	"fmt"
+	"io"
 	"maps"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/application"
 )
 
 func listIDs(t *testing.T, url string) []string {
@@ -73,6 +76,19 @@ func TestANoteHasExactlyItsDocumentedFields(t *testing.T) {
 	fields := slices.Sorted(maps.Keys(response.body))
 	if want := []string{"archived", "body", "createdAt", "editedAt", "id", "title"}; !slices.Equal(fields, want) {
 		t.Errorf("fields = %v, want %v", fields, want)
+	}
+}
+
+func TestANoteWithAReminderShowsItsTime(t *testing.T) {
+	remindAt := time.Date(2026, time.March, 4, 9, 30, 0, 0, time.FixedZone("Baku", 4*60*60))
+	server := httptest.NewServer(newRouter(stubUseCases{getNote: func() (application.NoteViewDTO, error) {
+		return application.NoteViewDTO{ID: "some-note", RemindAt: remindAt}, nil
+	}}, io.Discard))
+	t.Cleanup(server.Close)
+	response := call(t, http.MethodGet, server.URL+"/notes/some-note", jsonType, "")
+	assertStatus(t, response, http.StatusOK)
+	if want := "2026-03-04T05:30:00Z"; response.body["remindAt"] != want {
+		t.Errorf("remindAt = %v, want %s", response.body["remindAt"], want)
 	}
 }
 
