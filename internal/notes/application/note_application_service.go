@@ -107,6 +107,10 @@ func (service NoteApplicationService) DeleteNote(ctx context.Context, command De
 	return service.noteRepository.Remove(ctx, deleted)
 }
 
+func (service NoteApplicationService) ScheduleReminder(ctx context.Context, command ScheduleReminderCommand) (NoteViewDTO, error) {
+	return NoteViewDTO{}, nil
+}
+
 func (service NoteApplicationService) GetNote(ctx context.Context, query GetNoteQuery) (NoteViewDTO, error) {
 	note, err := service.load(ctx, query.NoteID)
 	if err != nil {

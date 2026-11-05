@@ -239,6 +239,26 @@ func TestDeletingRemovesTheNoteWithItsDeletedEvent(t *testing.T) {
 	}
 }
 
+func TestSchedulingAReminderStoresItsEvent(t *testing.T) {
+	test := newFixture()
+	test.create(t)
+	remindAt := startedAt.Add(time.Hour)
+	view, err := test.service.ScheduleReminder(context.Background(), application.ScheduleReminderCommand{NoteID: "groceries", RemindAt: remindAt})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !view.RemindAt.Equal(remindAt) {
+		t.Errorf("remindAt = %v", view.RemindAt)
+	}
+	if !slices.Equal(test.repository.calls, []string{"find", "save"}) {
+		t.Errorf("calls = %v", test.repository.calls)
+	}
+	events := test.repository.notes["groceries"].PendingEvents()
+	if last := events[len(events)-1]; last.EventName() != "reminder.scheduled" {
+		t.Errorf("event = %v", last.EventName())
+	}
+}
+
 func TestReadingANote(t *testing.T) {
 	test := newFixture()
 	created := test.create(t)
@@ -291,6 +311,10 @@ func useCaseCalls() map[string]func(application.NoteApplicationService, string) 
 		"delete": func(service application.NoteApplicationService, id string) error {
 			return service.DeleteNote(ctx, application.DeleteNoteCommand{NoteID: id})
 		},
+		"schedule reminder": func(service application.NoteApplicationService, id string) error {
+			_, err := service.ScheduleReminder(ctx, application.ScheduleReminderCommand{NoteID: id, RemindAt: startedAt.Add(time.Hour)})
+			return err
+		},
 		"get": func(service application.NoteApplicationService, id string) error {
 			_, err := service.GetNote(ctx, application.GetNoteQuery{NoteID: id})
 			return err
@@ -339,6 +363,7 @@ func TestRefusedChangesReachTheCallerAndAreNeverSaved(t *testing.T) {
 	}{
 		{useCase: "edit", archived: true, want: domain.ErrNoteArchived},
 		{useCase: "archive", archived: true, want: domain.ErrNoteAlreadyArchived},
+		{useCase: "schedule reminder", archived: true, want: domain.ErrNoteArchived},
 		{useCase: "restore", want: domain.ErrNoteNotArchived},
 	}
 	calls := useCaseCalls()
