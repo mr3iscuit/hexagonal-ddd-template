@@ -93,7 +93,8 @@ func (note Note) CancelReminder(cancelledAt time.Time) (Note, error) {
 
 // TriggerReminder fires a reminder that has come due, and removes it.
 func (note Note) TriggerReminder(triggeredAt time.Time) (Note, error) {
-	return note, nil
+	note.remindAt = time.Time{}
+	return note.recording(ReminderTriggered{noteEvent{note.id, triggeredAt}}), nil
 }
 
 // Archive puts the note away, and cancels any reminder, because an archived note

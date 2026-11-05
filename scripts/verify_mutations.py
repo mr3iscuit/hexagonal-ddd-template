@@ -104,6 +104,10 @@ MUTATIONS = [
     ("cancelling leaves the reminder", DOMAIN + "note.go", "note.remindAt = time.Time{}\n\treturn note.recording(ReminderCancelled", "return note.recording(ReminderCancelled"),
     ("archiving leaves the reminder", DOMAIN + "note.go", "if !note.remindAt.IsZero() {\n\t\tnote = note.withoutReminder(archivedAt)", "if false {\n\t\tnote = note.withoutReminder(archivedAt)"),
     ("archiving always records a cancellation", DOMAIN + "note.go", "if !note.remindAt.IsZero() {\n\t\tnote = note.withoutReminder(archivedAt)", "if true {\n\t\tnote = note.withoutReminder(archivedAt)"),
+    ("triggering leaves the reminder", DOMAIN + "note.go", "note.remindAt = time.Time{}\n\treturn note.recording(ReminderTriggered", "return note.recording(ReminderTriggered"),
+    ("scheduling counts as an edit", DOMAIN + "note.go", "note.remindAt = remindAt\n", "note.remindAt = remindAt\n\tnote.editedAt = scheduledAt\n"),
+    ("cancelling counts as an edit", DOMAIN + "note.go", "note.remindAt = time.Time{}\n\treturn note.recording(ReminderCancelled", "note.remindAt = time.Time{}\n\tnote.editedAt = cancelledAt\n\treturn note.recording(ReminderCancelled"),
+    ("triggering counts as an edit", DOMAIN + "note.go", "note.remindAt = time.Time{}\n\treturn note.recording(ReminderTriggered", "note.remindAt = time.Time{}\n\tnote.editedAt = triggeredAt\n\treturn note.recording(ReminderTriggered"),
 ]
 
 
