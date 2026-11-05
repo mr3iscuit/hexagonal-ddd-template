@@ -78,6 +78,12 @@ func TestCancellingAReminderClearsIt(t *testing.T) {
 	}
 }
 
+func TestRejectsCancellingWithoutAReminder(t *testing.T) {
+	if _, err := newNote(t).CancelReminder(changedAt); !errors.Is(err, domain.ErrNoReminderScheduled) {
+		t.Errorf("err = %v", err)
+	}
+}
+
 func TestSchedulingAgainReplacesTheReminder(t *testing.T) {
 	later := remindAt.Add(time.Hour)
 	note, err := withReminder(t).ScheduleReminder(later, changedAt)
