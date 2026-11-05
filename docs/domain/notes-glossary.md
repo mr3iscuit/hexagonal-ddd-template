@@ -34,6 +34,7 @@ The language of the `notes` bounded context. Names in the code must match this p
 | `NoteArchived` | `note.archived` | A note was archived |
 | `NoteRestored` | `note.restored` | A note was restored |
 | `NoteDeleted` | `note.deleted` | A note was deleted |
+| `ReminderScheduled` | `reminder.scheduled` | A reminder was set on a note |
 
 ## Assumptions To Confirm
 

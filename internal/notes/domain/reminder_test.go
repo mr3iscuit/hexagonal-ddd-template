@@ -1,6 +1,7 @@
 package domain_test
 
 import (
+	"slices"
 	"testing"
 	"time"
 
@@ -21,6 +22,16 @@ func withReminder(t *testing.T) domain.Note {
 func TestSchedulingAReminderKeepsItsTime(t *testing.T) {
 	if note := withReminder(t); !note.RemindAt().Equal(remindAt) {
 		t.Errorf("remindAt = %v, want %v", note.RemindAt(), remindAt)
+	}
+}
+
+func TestSchedulingAReminderRecordsItsEvent(t *testing.T) {
+	note := withReminder(t)
+	if !slices.Equal(eventNames(note), []string{"note.created", "reminder.scheduled"}) {
+		t.Fatalf("events = %v", eventNames(note))
+	}
+	if event := note.PendingEvents()[1]; event.NoteID() != note.ID() || !event.OccurredAt().Equal(changedAt) {
+		t.Errorf("event = %+v", event)
 	}
 }
 

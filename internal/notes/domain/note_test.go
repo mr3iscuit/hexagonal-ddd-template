@@ -266,11 +266,12 @@ func TestEventsCarryTheNoteAndTheTime(t *testing.T) {
 
 func TestPublishedEventNamesNeverChange(t *testing.T) {
 	want := map[string]domain.Event{
-		"note.created":  domain.NoteCreated{},
-		"note.edited":   domain.NoteEdited{},
-		"note.archived": domain.NoteArchived{},
-		"note.restored": domain.NoteRestored{},
-		"note.deleted":  domain.NoteDeleted{},
+		"note.created":       domain.NoteCreated{},
+		"note.edited":        domain.NoteEdited{},
+		"note.archived":      domain.NoteArchived{},
+		"note.restored":      domain.NoteRestored{},
+		"note.deleted":       domain.NoteDeleted{},
+		"reminder.scheduled": domain.ReminderScheduled{},
 	}
 	for name, event := range want {
 		if event.EventName() != name {
