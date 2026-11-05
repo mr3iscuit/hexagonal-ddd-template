@@ -10,6 +10,7 @@ type NoteUseCasesPort interface {
 	RestoreNote(ctx context.Context, command RestoreNoteCommand) (NoteViewDTO, error)
 	DeleteNote(ctx context.Context, command DeleteNoteCommand) error
 	ScheduleReminder(ctx context.Context, command ScheduleReminderCommand) (NoteViewDTO, error)
+	CancelReminder(ctx context.Context, command CancelReminderCommand) (NoteViewDTO, error)
 	GetNote(ctx context.Context, query GetNoteQuery) (NoteViewDTO, error)
 	ListNotes(ctx context.Context, query ListNotesQuery) ([]NoteViewDTO, error)
 }

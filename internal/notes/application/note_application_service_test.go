@@ -259,6 +259,22 @@ func TestSchedulingAReminderStoresItsEvent(t *testing.T) {
 	}
 }
 
+func TestCancellingAReminderStoresItsEvent(t *testing.T) {
+	test := newFixture()
+	test.changeable(t, "cancel reminder")
+	view, err := test.service.CancelReminder(context.Background(), application.CancelReminderCommand{NoteID: "groceries"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !view.RemindAt.IsZero() || view.ID != "groceries" {
+		t.Errorf("view = %+v", view)
+	}
+	events := test.repository.notes["groceries"].PendingEvents()
+	if last := events[len(events)-1]; last.EventName() != "reminder.cancelled" {
+		t.Errorf("event = %v", last.EventName())
+	}
+}
+
 func TestReadingANote(t *testing.T) {
 	test := newFixture()
 	created := test.create(t)
@@ -315,6 +331,10 @@ func useCaseCalls() map[string]func(application.NoteApplicationService, string) 
 			_, err := service.ScheduleReminder(ctx, application.ScheduleReminderCommand{NoteID: id, RemindAt: startedAt.Add(time.Hour)})
 			return err
 		},
+		"cancel reminder": func(service application.NoteApplicationService, id string) error {
+			_, err := service.CancelReminder(ctx, application.CancelReminderCommand{NoteID: id})
+			return err
+		},
 		"get": func(service application.NoteApplicationService, id string) error {
 			_, err := service.GetNote(ctx, application.GetNoteQuery{NoteID: id})
 			return err
@@ -326,10 +346,16 @@ func useCaseCalls() map[string]func(application.NoteApplicationService, string) 
 func (test fixture) changeable(t *testing.T, useCase string) {
 	t.Helper()
 	test.create(t)
-	if useCase == "restore" {
-		if _, err := test.service.ArchiveNote(context.Background(), application.ArchiveNoteCommand{NoteID: "groceries"}); err != nil {
-			t.Fatal(err)
-		}
+	ctx := context.Background()
+	var err error
+	switch useCase {
+	case "restore":
+		_, err = test.service.ArchiveNote(ctx, application.ArchiveNoteCommand{NoteID: "groceries"})
+	case "cancel reminder":
+		_, err = test.service.ScheduleReminder(ctx, application.ScheduleReminderCommand{NoteID: "groceries", RemindAt: startedAt.Add(time.Hour)})
+	}
+	if err != nil {
+		t.Fatal(err)
 	}
 	test.repository.calls = nil
 }
@@ -364,6 +390,7 @@ func TestRefusedChangesReachTheCallerAndAreNeverSaved(t *testing.T) {
 		{useCase: "edit", archived: true, want: domain.ErrNoteArchived},
 		{useCase: "archive", archived: true, want: domain.ErrNoteAlreadyArchived},
 		{useCase: "schedule reminder", archived: true, want: domain.ErrNoteArchived},
+		{useCase: "cancel reminder", want: domain.ErrNoReminderScheduled},
 		{useCase: "restore", want: domain.ErrNoteNotArchived},
 	}
 	calls := useCaseCalls()

@@ -122,6 +122,10 @@ func (service NoteApplicationService) ScheduleReminder(ctx context.Context, comm
 	return toNoteViewDTO(scheduled), nil
 }
 
+func (service NoteApplicationService) CancelReminder(ctx context.Context, command CancelReminderCommand) (NoteViewDTO, error) {
+	return NoteViewDTO{}, nil
+}
+
 func (service NoteApplicationService) GetNote(ctx context.Context, query GetNoteQuery) (NoteViewDTO, error) {
 	note, err := service.load(ctx, query.NoteID)
 	if err != nil {
