@@ -62,7 +62,7 @@ Every failure returns the same body, with the content type `application/problem+
   "status": 409,
   "category": "business",
   "code": "NOTE_ARCHIVED",
-  "detail": "an archived note cannot be edited",
+  "detail": "an archived note cannot be edited or given a reminder",
   "requestId": "abc-000001"
 }
 ```

@@ -10,7 +10,7 @@ The language of the `notes` bounded context. Names in the code must match this p
 | Note ID | `NoteID` | The identity of a note, which is never blank |
 | Title | `Title` | The name of a note: required, trimmed, a single line with no control characters, at most 200 characters, and with at least one letter, number, punctuation mark or symbol |
 | Body | `Body` | The text of a note: may be empty, keeps its whitespace, has no control characters apart from line breaks and tabs, and has at most 10,000 characters |
-| Archived | `Note.IsArchived` | The note is put away: it's listed separately and can't be edited |
+| Archived | `Note.IsArchived` | The note is put away: it's listed separately and can't be edited or given a reminder |
 | Reminder | `Note.RemindAt` | A time when the reader wants to be prompted about a note. A note has at most one |
 | Reading order | `OrderForReading` | The most recently edited notes first, then by ID so the order is stable |
 | Event | `Event` | A fact that happened to a note |
@@ -20,7 +20,7 @@ The language of the `notes` bounded context. Names in the code must match this p
 | Behaviour | Rule | Rejected with |
 | --- | --- | --- |
 | `Edit` | Replaces the title and body, and moves the edit time forward | `ErrNoteArchived`, `ErrTitleRequired` |
-| `ScheduleReminder` | Sets the reminder, replacing any earlier one. Its time must be strictly after now | `ErrReminderNotInFuture` |
+| `ScheduleReminder` | Sets the reminder, replacing any earlier one. Its time must be strictly after now, and the note must be active | `ErrReminderNotInFuture`, `ErrNoteArchived` |
 | `Archive` | Only an active note | `ErrNoteAlreadyArchived` |
 | `Restore` | Only an archived note | `ErrNoteNotArchived` |
 | `Delete` | Any note, whether active or archived | |
