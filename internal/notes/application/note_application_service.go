@@ -137,6 +137,12 @@ func (service NoteApplicationService) CancelReminder(ctx context.Context, comman
 	return toNoteViewDTO(cancelled), nil
 }
 
+// TriggerDueReminders fires every reminder that has come due, and returns how
+// many it fired.
+func (service NoteApplicationService) TriggerDueReminders(ctx context.Context) (int, error) {
+	return 0, nil
+}
+
 func (service NoteApplicationService) GetNote(ctx context.Context, query GetNoteQuery) (NoteViewDTO, error) {
 	note, err := service.load(ctx, query.NoteID)
 	if err != nil {

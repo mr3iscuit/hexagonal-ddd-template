@@ -37,12 +37,19 @@ type fakeRepository struct {
 	archived    bool
 	failure     error
 	listFailure error
+	// saveFailures fails Save for one note only.
+	saveFailures map[string]error
+	// everyNoteIsDue returns notes as due whatever their reminder says.
+	everyNoteIsDue bool
 }
 
 func (repository *fakeRepository) Save(_ context.Context, note domain.Note) error {
 	repository.calls = append(repository.calls, "save")
 	if repository.failure != nil {
 		return repository.failure
+	}
+	if failure := repository.saveFailures[note.ID().String()]; failure != nil {
+		return failure
 	}
 	repository.notes[note.ID().String()] = note
 	return nil
@@ -72,19 +79,31 @@ func (repository *fakeRepository) List(_ context.Context, archived bool) ([]doma
 	if repository.listFailure != nil {
 		return nil, repository.listFailure
 	}
+	return repository.inFixedOrder(func(domain.Note) bool { return true }), nil
+}
+
+// inFixedOrder keeps a test from passing because the map happened to help.
+func (repository *fakeRepository) inFixedOrder(matches func(domain.Note) bool) []domain.Note {
 	var notes []domain.Note
 	for _, note := range repository.notes {
-		notes = append(notes, note)
+		if matches(note) {
+			notes = append(notes, note)
+		}
 	}
-	// A fixed order, so that a test can't pass because the map happened to help.
 	slices.SortFunc(notes, func(first, second domain.Note) int {
 		return strings.Compare(first.ID().String(), second.ID().String())
 	})
-	return notes, nil
+	return notes
 }
 
-func (repository *fakeRepository) ListDueReminders(context.Context, time.Time) ([]domain.Note, error) {
-	return nil, nil
+func (repository *fakeRepository) ListDueReminders(_ context.Context, now time.Time) ([]domain.Note, error) {
+	repository.calls = append(repository.calls, "list due")
+	if repository.listFailure != nil {
+		return nil, repository.listFailure
+	}
+	return repository.inFixedOrder(func(note domain.Note) bool {
+		return repository.everyNoteIsDue || (!note.RemindAt().IsZero() && !note.RemindAt().After(now))
+	}), nil
 }
 
 type fixture struct {
@@ -94,7 +113,7 @@ type fixture struct {
 }
 
 func newFixture() fixture {
-	repository := &fakeRepository{notes: map[string]domain.Note{}}
+	repository := &fakeRepository{notes: map[string]domain.Note{}, saveFailures: map[string]error{}}
 	clock := &fakeClock{now: startedAt}
 	return fixture{
 		service:    application.NewNoteApplicationService(repository, clock, fakeIDGenerator{id: "groceries"}),
@@ -273,6 +292,102 @@ func TestCancellingAReminderStoresItsEvent(t *testing.T) {
 	if last := events[len(events)-1]; last.EventName() != "reminder.cancelled" {
 		t.Errorf("event = %v", last.EventName())
 	}
+}
+
+// noteDueAt stores a note with a reminder, through the real use cases.
+func (test fixture) noteDueAt(t *testing.T, id string, dueAt time.Time) {
+	t.Helper()
+	ctx := context.Background()
+	service := application.NewNoteApplicationService(test.repository, test.clock, fakeIDGenerator{id: id})
+	if _, err := service.CreateNote(ctx, application.CreateNoteCommand{Title: id}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.ScheduleReminder(ctx, application.ScheduleReminderCommand{NoteID: id, RemindAt: dueAt}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func lastEvent(note domain.Note) domain.Event {
+	events := note.PendingEvents()
+	return events[len(events)-1]
+}
+
+func TestDueRemindersAreTriggeredAndStored(t *testing.T) {
+	test := newFixture()
+	dueAt := startedAt.Add(time.Hour)
+	test.noteDueAt(t, "first", dueAt)
+	test.noteDueAt(t, "second", dueAt)
+	test.noteDueAt(t, "later", dueAt.Add(time.Nanosecond))
+	test.clock.now = dueAt
+	triggered, err := test.service.TriggerDueReminders(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if triggered != 2 {
+		t.Errorf("triggered = %d", triggered)
+	}
+	for _, id := range []string{"first", "second"} {
+		note := test.repository.notes[id]
+		if !note.RemindAt().IsZero() || lastEvent(note).EventName() != "reminder.triggered" || !lastEvent(note).OccurredAt().Equal(dueAt) {
+			t.Errorf("%s: remindAt = %v, event = %+v", id, note.RemindAt(), lastEvent(note))
+		}
+	}
+	if test.repository.notes["later"].RemindAt().IsZero() {
+		t.Error("a reminder that isn't due was triggered")
+	}
+}
+
+func TestAConflictSkipsOnlyThatReminder(t *testing.T) {
+	test := newFixture()
+	dueAt := startedAt.Add(time.Hour)
+	test.noteDueAt(t, "first", dueAt)
+	test.noteDueAt(t, "second", dueAt)
+	test.repository.saveFailures["first"] = application.ErrNoteModifiedConcurrently
+	test.clock.now = dueAt
+	triggered, err := test.service.TriggerDueReminders(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if triggered != 1 || !test.repository.notes["second"].RemindAt().IsZero() {
+		t.Errorf("triggered = %d, second = %v", triggered, test.repository.notes["second"].RemindAt())
+	}
+}
+
+func TestAStorageFailureStopsTheReminderCheck(t *testing.T) {
+	failure := errors.New("storage is down")
+	test := newFixture()
+	dueAt := startedAt.Add(time.Hour)
+	test.noteDueAt(t, "first", dueAt)
+	test.noteDueAt(t, "second", dueAt)
+	test.repository.saveFailures["first"] = failure
+	test.clock.now = dueAt
+	triggered, err := test.service.TriggerDueReminders(context.Background())
+	if !errors.Is(err, failure) || triggered != 0 {
+		t.Errorf("triggered = %d, err = %v", triggered, err)
+	}
+	if test.repository.notes["second"].RemindAt().IsZero() {
+		t.Error("the check carried on after the failure")
+	}
+}
+
+func TestAFailedSearchForDueRemindersReachesTheCaller(t *testing.T) {
+	failure := errors.New("storage is down")
+	test := newFixture()
+	test.repository.listFailure = failure
+	if _, err := test.service.TriggerDueReminders(context.Background()); !errors.Is(err, failure) {
+		t.Errorf("err = %v", err)
+	}
+}
+
+func TestAReminderThatIsNotDueIsNeverStored(t *testing.T) {
+	test := newFixture()
+	test.noteDueAt(t, "early", startedAt.Add(time.Hour))
+	test.repository.everyNoteIsDue = true
+	test.repository.calls = nil
+	if _, err := test.service.TriggerDueReminders(context.Background()); err == nil {
+		t.Error("the reminder triggered early")
+	}
+	assertNothingStored(t, test.repository)
 }
 
 func TestReadingANote(t *testing.T) {
