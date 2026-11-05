@@ -132,6 +132,7 @@ MUTATIONS = [
     ("a note with no reminder shows a zero time", HTTP + "note_response_dto.go", 'json:"remindAt,omitzero"', 'json:"remindAt"'),
     ("a bad reminder time reaches the domain", HTTP + "note_handler.go", "remindAt, err := time.Parse(time.RFC3339, requestDTO.RemindAt)\n\tif err != nil {", "remindAt, err := time.Parse(time.RFC3339, requestDTO.RemindAt)\n\tif err != nil && false {"),
     ("a refused reminder looks scheduled", HTTP + "note_handler.go", "view, err := handler.noteUseCases.ScheduleReminder(request.Context(), toScheduleReminderCommand(noteIDFrom(request), remindAt))\n\tif err != nil {", "view, err := handler.noteUseCases.ScheduleReminder(request.Context(), toScheduleReminderCommand(noteIDFrom(request), remindAt))\n\tif err != nil && false {"),
+    ("cancelling a reminder ignores a body", HTTP + "note_handler.go", "handler.handle(withoutBody(handler.cancelReminder))", "handler.handle(handler.cancelReminder)"),
 ]
 
 

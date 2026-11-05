@@ -31,7 +31,7 @@ func toScheduleReminderCommand(noteID string, remindAt time.Time) application.Sc
 }
 
 func toCancelReminderCommand(noteID string) application.CancelReminderCommand {
-	return application.CancelReminderCommand{}
+	return application.CancelReminderCommand{NoteID: noteID}
 }
 
 func toGetNoteQuery(noteID string) application.GetNoteQuery {

@@ -33,6 +33,7 @@ func (handler NoteHandler) Register(router chi.Router) {
 	router.Post("/notes/{id}/archive", handler.handle(withoutBody(handler.archiveNote)))
 	router.Post("/notes/{id}/restore", handler.handle(withoutBody(handler.restoreNote)))
 	router.Put("/notes/{id}/reminder", handler.handle(handler.scheduleReminder))
+	router.Delete("/notes/{id}/reminder", handler.handle(withoutBody(handler.cancelReminder)))
 }
 
 // handle lets an endpoint stop by returning an error, so every failure goes
@@ -124,6 +125,14 @@ func (handler NoteHandler) scheduleReminder(responseWriter http.ResponseWriter, 
 		return invalidRequest(FieldError{Message: invalidRemindAtMessage, Location: bodyLocation + locationSeparator + remindAtField})
 	}
 	view, err := handler.noteUseCases.ScheduleReminder(request.Context(), toScheduleReminderCommand(noteIDFrom(request), remindAt))
+	if err != nil {
+		return err
+	}
+	return handler.respond(responseWriter, request, http.StatusOK, toNoteResponseDTO(view))
+}
+
+func (handler NoteHandler) cancelReminder(responseWriter http.ResponseWriter, request *http.Request) error {
+	view, err := handler.noteUseCases.CancelReminder(request.Context(), toCancelReminderCommand(noteIDFrom(request)))
 	if err != nil {
 		return err
 	}
