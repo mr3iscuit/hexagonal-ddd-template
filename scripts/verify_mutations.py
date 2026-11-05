@@ -97,6 +97,8 @@ MUTATIONS = [
     ("a failed write loses its request ID", HTTP + "note_handler.go", 'logger.Log(ctx, level, logWriteFailed, logKeyRequestID, requestIDFrom(ctx), logKeyError, err)', 'logger.Log(ctx, level, logWriteFailed, logKeyError, err)'),
     ("a client leaving is logged as a fault", HTTP + "note_handler.go", "if ctx.Err() != nil {", "if false {"),
     ("the Allow header is dropped", HTTP + "router.go", 'responseWriter.Header().Set("Allow", allowedMethods(router, routedPath(request)))', "_ = allowedMethods"),
+    ("a reminder can be for right now", DOMAIN + "note.go", "if !remindAt.After(scheduledAt) {", "if remindAt.Before(scheduledAt) {"),
+    ("a reminder can be in the past", DOMAIN + "note.go", "if !remindAt.After(scheduledAt) {", "if false {"),
 ]
 
 
