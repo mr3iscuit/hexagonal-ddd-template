@@ -100,6 +100,7 @@ MUTATIONS = [
     ("a reminder can be for right now", DOMAIN + "note.go", "if !remindAt.After(scheduledAt) {", "if remindAt.Before(scheduledAt) {"),
     ("a reminder can be in the past", DOMAIN + "note.go", "if !remindAt.After(scheduledAt) {", "if false {"),
     ("a reminder can be set on an archived note", DOMAIN + "note.go", "if note.archived {\n\t\treturn Note{}, ErrNoteArchived\n\t}\n\tif !remindAt.After(scheduledAt) {", "if false {\n\t\treturn Note{}, ErrNoteArchived\n\t}\n\tif !remindAt.After(scheduledAt) {"),
+    ("a missing reminder can be cancelled", DOMAIN + "note.go", "if note.remindAt.IsZero() {\n\t\treturn Note{}, ErrNoReminderScheduled", "if false {\n\t\treturn Note{}, ErrNoReminderScheduled"),
 ]
 
 

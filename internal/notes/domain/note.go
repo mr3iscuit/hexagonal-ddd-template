@@ -85,6 +85,9 @@ func (note Note) ScheduleReminder(remindAt, scheduledAt time.Time) (Note, error)
 
 // CancelReminder removes the reminder.
 func (note Note) CancelReminder(cancelledAt time.Time) (Note, error) {
+	if note.remindAt.IsZero() {
+		return Note{}, ErrNoReminderScheduled
+	}
 	note.remindAt = time.Time{}
 	return note.recording(ReminderCancelled{noteEvent{note.id, cancelledAt}}), nil
 }
