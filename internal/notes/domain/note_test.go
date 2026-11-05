@@ -191,10 +191,13 @@ func TestDeletingRecordsTheFact(t *testing.T) {
 func TestANoteThatWasNeverCreatedRefusesEveryBehaviour(t *testing.T) {
 	var note domain.Note
 	behaviours := map[string]func() (domain.Note, error){
-		"edit":    func() (domain.Note, error) { return note.Edit(title(t, "Shopping"), domain.Body{}, changedAt) },
-		"archive": func() (domain.Note, error) { return note.Archive(changedAt) },
-		"restore": func() (domain.Note, error) { return note.Restore(changedAt) },
-		"delete":  func() (domain.Note, error) { return note.Delete(changedAt) },
+		"edit":              func() (domain.Note, error) { return note.Edit(title(t, "Shopping"), domain.Body{}, changedAt) },
+		"archive":           func() (domain.Note, error) { return note.Archive(changedAt) },
+		"restore":           func() (domain.Note, error) { return note.Restore(changedAt) },
+		"delete":            func() (domain.Note, error) { return note.Delete(changedAt) },
+		"schedule reminder": func() (domain.Note, error) { return note.ScheduleReminder(remindAt, changedAt) },
+		"cancel reminder":   func() (domain.Note, error) { return note.CancelReminder(changedAt) },
+		"trigger reminder":  func() (domain.Note, error) { return note.TriggerReminder(remindAt) },
 	}
 	for name, behaviour := range behaviours {
 		t.Run(name, func(t *testing.T) {
@@ -202,7 +205,7 @@ func TestANoteThatWasNeverCreatedRefusesEveryBehaviour(t *testing.T) {
 			if err == nil {
 				t.Fatal("the behaviour was allowed")
 			}
-			for _, published := range []error{domain.ErrNoteNotArchived, domain.ErrNoteAlreadyArchived, domain.ErrNoteArchived} {
+			for _, published := range []error{domain.ErrNoReminderScheduled, domain.ErrReminderNotInFuture, domain.ErrNoteNotArchived, domain.ErrNoteAlreadyArchived, domain.ErrNoteArchived} {
 				if errors.Is(err, published) {
 					t.Errorf("err = %v must not look like a client's mistake", err)
 				}
@@ -216,10 +219,13 @@ func TestANoteThatWasNeverCreatedRefusesEveryBehaviour(t *testing.T) {
 func TestEveryBehaviourRefusesAChangeWithNoTime(t *testing.T) {
 	var noTime time.Time
 	behaviours := map[string]func() (domain.Note, error){
-		"edit":    func() (domain.Note, error) { return newNote(t).Edit(title(t, "Shopping"), domain.Body{}, noTime) },
-		"archive": func() (domain.Note, error) { return newNote(t).Archive(noTime) },
-		"restore": func() (domain.Note, error) { return archived(t).Restore(noTime) },
-		"delete":  func() (domain.Note, error) { return newNote(t).Delete(noTime) },
+		"edit":              func() (domain.Note, error) { return newNote(t).Edit(title(t, "Shopping"), domain.Body{}, noTime) },
+		"archive":           func() (domain.Note, error) { return newNote(t).Archive(noTime) },
+		"restore":           func() (domain.Note, error) { return archived(t).Restore(noTime) },
+		"delete":            func() (domain.Note, error) { return newNote(t).Delete(noTime) },
+		"schedule reminder": func() (domain.Note, error) { return newNote(t).ScheduleReminder(remindAt, noTime) },
+		"cancel reminder":   func() (domain.Note, error) { return withReminder(t).CancelReminder(noTime) },
+		"trigger reminder":  func() (domain.Note, error) { return withReminder(t).TriggerReminder(noTime) },
 	}
 	for name, behaviour := range behaviours {
 		t.Run(name, func(t *testing.T) {
