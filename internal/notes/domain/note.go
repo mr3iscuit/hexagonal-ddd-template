@@ -73,6 +73,7 @@ func (note Note) Edit(title Title, body Body, editedAt time.Time) (Note, error) 
 
 // ScheduleReminder asks to be reminded about the note at remindAt.
 func (note Note) ScheduleReminder(remindAt, scheduledAt time.Time) (Note, error) {
+	note.remindAt = remindAt
 	return note, nil
 }
 
