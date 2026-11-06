@@ -33,7 +33,11 @@ func (handler TickHandler) Run(ctx context.Context, ticks <-chan time.Time) {
 }
 
 func (handler TickHandler) checkReminders(ctx context.Context) {
-	triggered, _ := handler.noteUseCases.TriggerDueReminders(ctx)
+	triggered, err := handler.noteUseCases.TriggerDueReminders(ctx)
+	// A check cut short by shutdown isn't a fault.
+	if err != nil && ctx.Err() == nil {
+		handler.logger.ErrorContext(ctx, logCheckFailed, logKeyError, err)
+	}
 	if triggered > 0 {
 		handler.logger.InfoContext(ctx, logRemindersTriggered, logKeyCount, triggered)
 	}

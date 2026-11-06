@@ -138,6 +138,8 @@ MUTATIONS = [
     ("the ticker ignores shutdown", TICKER + "tick_handler.go", "\t\tcase <-ctx.Done():\n\t\t\treturn\n", ""),
     ("triggered reminders aren't logged", TICKER + "tick_handler.go", "if triggered > 0 {", "if false {"),
     ("an empty check is logged", TICKER + "tick_handler.go", "if triggered > 0 {", "if true {"),
+    ("a failed check isn't logged", TICKER + "tick_handler.go", "if err != nil && ctx.Err() == nil {", "if err != nil && false {"),
+    ("a shutdown is logged as a failure", TICKER + "tick_handler.go", "if err != nil && ctx.Err() == nil {", "if err != nil {"),
 ]
 
 
