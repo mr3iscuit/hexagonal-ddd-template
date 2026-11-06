@@ -12,6 +12,8 @@ const (
 	idleTimeout       = 60 * time.Second
 	shutdownTimeout   = 10 * time.Second
 
+	reminderCheckInterval = time.Second
+
 	listenNetwork = "tcp"
 
 	logListening     = "listening"
