@@ -140,6 +140,7 @@ MUTATIONS = [
     ("an empty check is logged", TICKER + "tick_handler.go", "if triggered > 0 {", "if true {"),
     ("a failed check isn't logged", TICKER + "tick_handler.go", "if err != nil && ctx.Err() == nil {", "if err != nil && false {"),
     ("a shutdown is logged as a failure", TICKER + "tick_handler.go", "if err != nil && ctx.Err() == nil {", "if err != nil {"),
+    ("a panic ends the checks", TICKER + "tick_handler.go", "if recovered := recover(); recovered != nil {", "if recovered := any(nil); recovered != nil {"),
 ]
 
 

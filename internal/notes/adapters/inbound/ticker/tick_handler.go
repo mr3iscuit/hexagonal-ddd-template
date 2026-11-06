@@ -4,6 +4,7 @@ package ticker
 import (
 	"context"
 	"log/slog"
+	"runtime/debug"
 	"time"
 
 	"github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/application"
@@ -32,7 +33,14 @@ func (handler TickHandler) Run(ctx context.Context, ticks <-chan time.Time) {
 	}
 }
 
+// checkReminders recovers a panic, because no middleware runs here, and a panic
+// would otherwise end the process and every note it holds in memory.
 func (handler TickHandler) checkReminders(ctx context.Context) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			handler.logger.ErrorContext(ctx, logCheckPanicked, logKeyPanic, recovered, logKeyStack, string(debug.Stack()))
+		}
+	}()
 	triggered, err := handler.noteUseCases.TriggerDueReminders(ctx)
 	// A check cut short by shutdown isn't a fault.
 	if err != nil && ctx.Err() == nil {
