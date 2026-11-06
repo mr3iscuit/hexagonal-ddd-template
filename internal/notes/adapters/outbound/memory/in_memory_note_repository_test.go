@@ -353,6 +353,26 @@ func TestListingDueRemindersFindsOnlyDueNotes(t *testing.T) {
 	}
 }
 
+type fixedClock struct{ now time.Time }
+
+func (clock fixedClock) Now() time.Time { return clock.now }
+
+// This joins the real use case to real storage, because the event reaching the
+// outbox is what the whole feature promises.
+func TestADueReminderReachesTheOutbox(t *testing.T) {
+	repository := NewInMemoryNoteRepository()
+	withReminderDueAt(t, repository, "groceries", editedAt)
+	service := application.NewNoteApplicationService(repository, fixedClock{now: editedAt}, nil)
+	triggered, err := service.TriggerDueReminders(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	last := repository.outbox[len(repository.outbox)-1]
+	if want := (outboxRecord{"reminder.triggered", "groceries", editedAt}); triggered != 1 || last != want {
+		t.Errorf("triggered = %d, last event = %+v, want %+v", triggered, last, want)
+	}
+}
+
 func TestDamagedDataIsNotAClientMistake(t *testing.T) {
 	repository := NewInMemoryNoteRepository()
 	note := saved(t, repository, "groceries")
