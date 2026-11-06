@@ -117,6 +117,29 @@ func TestAShutdownDuringACheckIsNotAFailure(t *testing.T) {
 	}
 }
 
+func TestAPanicDoesNotStopTheChecks(t *testing.T) {
+	logs := &strings.Builder{}
+	checks := 0
+	running := run(stubUseCases{trigger: func() (int, error) {
+		checks++
+		if checks == 1 {
+			panic("secret panic value")
+		}
+		return 0, nil
+	}}, logs)
+	running.tick(t)
+	running.tick(t)
+	running.stop(t)
+	if checks != 2 {
+		t.Errorf("checks = %d", checks)
+	}
+	for _, expected := range []string{"level=ERROR", "secret panic value"} {
+		if !strings.Contains(logs.String(), expected) {
+			t.Errorf("%q is missing from the logs: %q", expected, logs)
+		}
+	}
+}
+
 func TestEveryTickTriggersDueReminders(t *testing.T) {
 	checks := 0
 	running := run(stubUseCases{trigger: func() (int, error) {
