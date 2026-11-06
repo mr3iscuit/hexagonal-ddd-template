@@ -84,7 +84,15 @@ func request(t *testing.T, method, url, body string) (int, map[string]any) {
 	return response.StatusCode, decoded
 }
 
-func TestTheRealBinaryServesNotesAndStopsCleanly(t *testing.T) {
+type runningServer struct {
+	baseURL string
+	command *exec.Cmd
+	output  *lockedBuffer
+	exited  <-chan error
+}
+
+func startServer(t *testing.T) runningServer {
+	t.Helper()
 	binary := filepath.Join(t.TempDir(), "api")
 	if output, err := exec.Command("go", "build", "-o", binary, "../../cmd/api").CombinedOutput(); err != nil {
 		t.Fatalf("build failed: %v\n%s", err, output)
@@ -100,7 +108,27 @@ func TestTheRealBinaryServesNotesAndStopsCleanly(t *testing.T) {
 	exited := make(chan error, 1)
 	go func() { exited <- command.Wait() }()
 	t.Cleanup(func() { _ = command.Process.Kill() })
-	baseURL := "http://" + waitForAddress(t, output)
+	return runningServer{baseURL: "http://" + waitForAddress(t, output), command: command, output: output, exited: exited}
+}
+
+func (server runningServer) stopCleanly(t *testing.T) {
+	t.Helper()
+	if err := server.command.Process.Signal(syscall.SIGTERM); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-server.exited:
+		if err != nil {
+			t.Errorf("the server did not exit cleanly: %v\n%s", err, server.output)
+		}
+	case <-time.After(shutdownTimeout):
+		t.Fatalf("the server did not stop: %s", server.output)
+	}
+}
+
+func TestTheRealBinaryServesNotesAndStopsCleanly(t *testing.T) {
+	server := startServer(t)
+	baseURL := server.baseURL
 
 	status, created := request(t, http.MethodPost, baseURL+"/notes", `{"title":"Groceries","body":"Milk"}`)
 	if status != http.StatusCreated {
@@ -125,19 +153,8 @@ func TestTheRealBinaryServesNotesAndStopsCleanly(t *testing.T) {
 	if status, missing := request(t, http.MethodGet, note, ""); status != http.StatusNotFound || missing["code"] != "NOTE_NOT_FOUND" {
 		t.Errorf("read after delete: %d %v", status, missing)
 	}
-	if !strings.Contains(output.String(), `"msg":"request handled"`) {
-		t.Errorf("the request was not logged: %s", output)
+	if !strings.Contains(server.output.String(), `"msg":"request handled"`) {
+		t.Errorf("the request was not logged: %s", server.output)
 	}
-
-	if err := command.Process.Signal(syscall.SIGTERM); err != nil {
-		t.Fatal(err)
-	}
-	select {
-	case err := <-exited:
-		if err != nil {
-			t.Errorf("the server did not exit cleanly: %v\n%s", err, output)
-		}
-	case <-time.After(shutdownTimeout):
-		t.Fatalf("the server did not stop: %s", output)
-	}
+	server.stopCleanly(t)
 }
