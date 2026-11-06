@@ -136,6 +136,8 @@ MUTATIONS = [
     ("cancelling a reminder ignores a body", HTTP + "note_handler.go", "handler.handle(withoutBody(handler.cancelReminder))", "handler.handle(handler.cancelReminder)"),
     ("a tick does nothing", TICKER + "tick_handler.go", "\t\t\thandler.checkReminders(ctx)\n", ""),
     ("the ticker ignores shutdown", TICKER + "tick_handler.go", "\t\tcase <-ctx.Done():\n\t\t\treturn\n", ""),
+    ("triggered reminders aren't logged", TICKER + "tick_handler.go", "if triggered > 0 {", "if false {"),
+    ("an empty check is logged", TICKER + "tick_handler.go", "if triggered > 0 {", "if true {"),
 ]
 
 

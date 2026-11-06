@@ -33,5 +33,8 @@ func (handler TickHandler) Run(ctx context.Context, ticks <-chan time.Time) {
 }
 
 func (handler TickHandler) checkReminders(ctx context.Context) {
-	_, _ = handler.noteUseCases.TriggerDueReminders(ctx)
+	triggered, _ := handler.noteUseCases.TriggerDueReminders(ctx)
+	if triggered > 0 {
+		handler.logger.InfoContext(ctx, logRemindersTriggered, logKeyCount, triggered)
+	}
 }
