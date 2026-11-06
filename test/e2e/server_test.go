@@ -19,6 +19,8 @@ const (
 	startupTimeout  = 15 * time.Second
 	shutdownTimeout = 15 * time.Second
 	pollInterval    = 50 * time.Millisecond
+	reminderLead    = time.Second
+	reminderTimeout = 6 * time.Second
 )
 
 // lockedBuffer can be read while the server is still writing to it.
@@ -155,6 +157,32 @@ func TestTheRealBinaryServesNotesAndStopsCleanly(t *testing.T) {
 	}
 	if !strings.Contains(server.output.String(), `"msg":"request handled"`) {
 		t.Errorf("the request was not logged: %s", server.output)
+	}
+	server.stopCleanly(t)
+}
+
+// This waits on the real clock, because a fake clock can't prove that the
+// running service uses the real one.
+func TestTheRealBinaryTriggersADueReminder(t *testing.T) {
+	server := startServer(t)
+	_, created := request(t, http.MethodPost, server.baseURL+"/notes", `{"title":"Call the dentist","body":""}`)
+	note := server.baseURL + "/notes/" + created["id"].(string)
+	remindAt := time.Now().Add(reminderLead).UTC().Format(time.RFC3339Nano)
+	if status, scheduled := request(t, http.MethodPut, note+"/reminder", `{"remindAt":"`+remindAt+`"}`); status != http.StatusOK {
+		t.Fatalf("schedule: %d %v", status, scheduled)
+	}
+
+	deadline := time.Now().Add(reminderTimeout)
+	triggered := func() bool {
+		_, read := request(t, http.MethodGet, note, "")
+		_, pending := read["remindAt"]
+		return !pending && strings.Contains(server.output.String(), `"msg":"reminders triggered"`)
+	}
+	for !triggered() {
+		if time.Now().After(deadline) {
+			t.Fatalf("the reminder never fired: %s", server.output)
+		}
+		time.Sleep(pollInterval)
 	}
 	server.stopCleanly(t)
 }
