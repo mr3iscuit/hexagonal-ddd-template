@@ -22,4 +22,16 @@ func NewTickHandler(noteUseCases application.NoteUseCasesPort, logger *slog.Logg
 
 // Run checks for due reminders on every tick, until ctx is done.
 func (handler TickHandler) Run(ctx context.Context, ticks <-chan time.Time) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticks:
+			handler.checkReminders(ctx)
+		}
+	}
+}
+
+func (handler TickHandler) checkReminders(ctx context.Context) {
+	_, _ = handler.noteUseCases.TriggerDueReminders(ctx)
 }

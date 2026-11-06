@@ -12,6 +12,7 @@ APPLICATION = "internal/notes/application/"
 MEMORY = "internal/notes/adapters/outbound/memory/"
 SYSTEM = "internal/notes/adapters/outbound/system/"
 HTTP = "internal/notes/adapters/inbound/httpapi/"
+TICKER = "internal/notes/adapters/inbound/ticker/"
 
 # Each mutation is (name, file, original text, broken text).
 MUTATIONS = [
@@ -133,6 +134,8 @@ MUTATIONS = [
     ("a bad reminder time reaches the domain", HTTP + "note_handler.go", "remindAt, err := time.Parse(time.RFC3339, requestDTO.RemindAt)\n\tif err != nil {", "remindAt, err := time.Parse(time.RFC3339, requestDTO.RemindAt)\n\tif err != nil && false {"),
     ("a refused reminder looks scheduled", HTTP + "note_handler.go", "view, err := handler.noteUseCases.ScheduleReminder(request.Context(), toScheduleReminderCommand(noteIDFrom(request), remindAt))\n\tif err != nil {", "view, err := handler.noteUseCases.ScheduleReminder(request.Context(), toScheduleReminderCommand(noteIDFrom(request), remindAt))\n\tif err != nil && false {"),
     ("cancelling a reminder ignores a body", HTTP + "note_handler.go", "handler.handle(withoutBody(handler.cancelReminder))", "handler.handle(handler.cancelReminder)"),
+    ("a tick does nothing", TICKER + "tick_handler.go", "\t\t\thandler.checkReminders(ctx)\n", ""),
+    ("the ticker ignores shutdown", TICKER + "tick_handler.go", "\t\tcase <-ctx.Done():\n\t\t\treturn\n", ""),
 ]
 
 
