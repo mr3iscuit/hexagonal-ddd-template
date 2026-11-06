@@ -52,4 +52,6 @@ No business rules were supplied for this service, so each of these is a choice t
 - Editing a note to the same content still counts as an edit.
 - Deleting is permanent, and any note can be deleted without archiving it first.
 - A note has no owner, so every caller shares the same notes.
+- A note has one reminder at most, and scheduling again replaces it. A reminder's time follows the server's clock, and a reminder fires within about a second of it.
+- Events carry only the note's ID and the time, so a reader of `reminder.scheduled` must read the note to learn the reminder's time.
 - The in-memory adapter holds at most 10,000 notes. This protects the process rather than being a business rule, so another adapter can set its own limit.
