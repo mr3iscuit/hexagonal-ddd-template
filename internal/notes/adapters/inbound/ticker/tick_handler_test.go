@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
 
@@ -57,6 +58,26 @@ func (running runningHandler) stop(t *testing.T) {
 	case <-running.finished:
 	case <-time.After(patience):
 		t.Fatal("the handler did not stop")
+	}
+}
+
+func TestTriggeredRemindersAreLogged(t *testing.T) {
+	logs := &strings.Builder{}
+	running := run(stubUseCases{trigger: func() (int, error) { return 2, nil }}, logs)
+	running.tick(t)
+	running.stop(t)
+	if !strings.Contains(logs.String(), `msg="reminders triggered" count=2`) {
+		t.Errorf("logs = %q", logs)
+	}
+}
+
+func TestACheckThatFindsNothingStaysQuiet(t *testing.T) {
+	logs := &strings.Builder{}
+	running := run(stubUseCases{trigger: func() (int, error) { return 0, nil }}, logs)
+	running.tick(t)
+	running.stop(t)
+	if logs.Len() != 0 {
+		t.Errorf("logs = %q", logs)
 	}
 }
 
