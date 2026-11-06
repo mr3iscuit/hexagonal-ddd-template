@@ -7,6 +7,7 @@ type NoteViewDTO struct {
 	Title     string
 	Body      string
 	Archived  bool
+	RemindAt  time.Time
 	CreatedAt time.Time
 	EditedAt  time.Time
 }

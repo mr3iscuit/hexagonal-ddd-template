@@ -16,6 +16,8 @@ const (
 	codeNoteAlreadyArchived          = "NOTE_ALREADY_ARCHIVED"
 	codeNoteNotArchived              = "NOTE_NOT_ARCHIVED"
 	codeNoteArchived                 = "NOTE_ARCHIVED"
+	codeNoteReminderNotInFuture      = "NOTE_REMINDER_NOT_IN_FUTURE"
+	codeNoteReminderNotScheduled     = "NOTE_REMINDER_NOT_SCHEDULED"
 	codeMalformedRequest             = "MALFORMED_REQUEST"
 	codeValidationFailed             = "VALIDATION_FAILED"
 	codeUnsupportedMediaType         = "UNSUPPORTED_MEDIA_TYPE"
@@ -40,6 +42,7 @@ const (
 	unexpectedQueryMessage  = "unexpected query parameter"
 	malformedQueryMessage   = "query string is not valid"
 	invalidArchivedMessage  = "archived must be true or false, once"
+	invalidRemindAtMessage  = "remindAt must be an RFC 3339 time"
 	requestCancelledMessage = "request was cancelled"
 
 	logRequestHandled   = "request handled"
@@ -59,9 +62,10 @@ const (
 	queryLocation     = "query"
 	locationSeparator = "."
 
-	titleField = "title"
-	bodyField  = "body"
-	jsonNull   = "null"
+	titleField    = "title"
+	bodyField     = "body"
+	remindAtField = "remindAt"
+	jsonNull      = "null"
 
 	charsetParameter = "charset"
 	utf8Charset      = "utf-8"

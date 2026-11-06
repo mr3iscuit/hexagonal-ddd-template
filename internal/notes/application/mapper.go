@@ -8,6 +8,7 @@ func toNoteViewDTO(note domain.Note) NoteViewDTO {
 		Title:     note.Title().String(),
 		Body:      note.Body().String(),
 		Archived:  note.IsArchived(),
+		RemindAt:  note.RemindAt(),
 		CreatedAt: note.CreatedAt(),
 		EditedAt:  note.EditedAt(),
 	}

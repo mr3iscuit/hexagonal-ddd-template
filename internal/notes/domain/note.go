@@ -12,6 +12,7 @@ type Note struct {
 	title         Title
 	body          Body
 	archived      bool
+	remindAt      time.Time
 	createdAt     time.Time
 	editedAt      time.Time
 	version       int
@@ -37,7 +38,7 @@ func NewNote(id NoteID, title Title, body Body, createdAt time.Time) (Note, erro
 
 // ReconstituteNote rebuilds a stored Note. It checks structure only, so a later
 // change to a business rule can't make saved data look damaged.
-func ReconstituteNote(id NoteID, title Title, body Body, archived bool, createdAt, editedAt time.Time, version int) (Note, error) {
+func ReconstituteNote(id NoteID, title Title, body Body, archived bool, remindAt, createdAt, editedAt time.Time, version int) (Note, error) {
 	if id.IsZero() {
 		return Note{}, ErrNoteIDRequired
 	}
@@ -50,7 +51,7 @@ func ReconstituteNote(id NoteID, title Title, body Body, archived bool, createdA
 	if version < 1 {
 		return Note{}, errNoteVersionInvalid
 	}
-	return Note{id: id, title: title, body: body, archived: archived, createdAt: createdAt, editedAt: editedAt, version: version}, nil
+	return Note{id: id, title: title, body: body, archived: archived, remindAt: remindAt, createdAt: createdAt, editedAt: editedAt, version: version}, nil
 }
 
 // Edit replaces the title and body.
@@ -70,13 +71,58 @@ func (note Note) Edit(title Title, body Body, editedAt time.Time) (Note, error) 
 	return note.recording(NoteEdited{noteEvent{note.id, editedAt}}), nil
 }
 
-// Archive puts the note away.
+// ScheduleReminder asks to be reminded about the note at remindAt.
+func (note Note) ScheduleReminder(remindAt, scheduledAt time.Time) (Note, error) {
+	if err := note.requireChange(scheduledAt); err != nil {
+		return Note{}, err
+	}
+	if note.archived {
+		return Note{}, ErrNoteArchived
+	}
+	if !remindAt.After(scheduledAt) {
+		return Note{}, ErrReminderNotInFuture
+	}
+	note.remindAt = remindAt
+	return note.recording(ReminderScheduled{noteEvent{note.id, scheduledAt}}), nil
+}
+
+// CancelReminder removes the reminder.
+func (note Note) CancelReminder(cancelledAt time.Time) (Note, error) {
+	if err := note.requireChange(cancelledAt); err != nil {
+		return Note{}, err
+	}
+	if note.remindAt.IsZero() {
+		return Note{}, ErrNoReminderScheduled
+	}
+	return note.withoutReminder(cancelledAt), nil
+}
+
+// TriggerReminder fires a reminder that has come due, and removes it.
+func (note Note) TriggerReminder(triggeredAt time.Time) (Note, error) {
+	if err := note.requireChange(triggeredAt); err != nil {
+		return Note{}, err
+	}
+	if note.remindAt.IsZero() {
+		return Note{}, ErrNoReminderScheduled
+	}
+	if triggeredAt.Before(note.remindAt) {
+		return Note{}, errReminderNotDue
+	}
+	note.remindAt = time.Time{}
+	return note.recording(ReminderTriggered{noteEvent{note.id, triggeredAt}}), nil
+}
+
+// Archive puts the note away, and cancels any reminder, because an archived note
+// never reminds anyone.
 func (note Note) Archive(archivedAt time.Time) (Note, error) {
 	if err := note.requireChange(archivedAt); err != nil {
 		return Note{}, err
 	}
 	if note.archived {
 		return Note{}, ErrNoteAlreadyArchived
+	}
+	if !note.remindAt.IsZero() {
+		note = note.withoutReminder(archivedAt)
 	}
 	note.archived = true
 	return note.recording(NoteArchived{noteEvent{note.id, archivedAt}}), nil
@@ -114,6 +160,11 @@ func (note Note) requireChange(changedAt time.Time) error {
 	return nil
 }
 
+func (note Note) withoutReminder(cancelledAt time.Time) Note {
+	note.remindAt = time.Time{}
+	return note.recording(ReminderCancelled{noteEvent{note.id, cancelledAt}})
+}
+
 func (note Note) recording(event Event) Note {
 	note.pendingEvents = append(slices.Clone(note.pendingEvents), event)
 	return note
@@ -126,6 +177,8 @@ func (note Note) Title() Title { return note.title }
 func (note Note) Body() Body { return note.body }
 
 func (note Note) IsArchived() bool { return note.archived }
+
+func (note Note) RemindAt() time.Time { return note.remindAt }
 
 func (note Note) CreatedAt() time.Time { return note.createdAt }
 

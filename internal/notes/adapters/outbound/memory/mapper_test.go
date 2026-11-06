@@ -15,7 +15,11 @@ func validRecord() noteRecord {
 }
 
 func TestRecordRoundTripKeepsEveryField(t *testing.T) {
-	for _, record := range []noteRecord{validRecord(), {id: "old", title: "Old", archived: true, createdAt: createdAt, editedAt: createdAt, version: 1}} {
+	for _, record := range []noteRecord{
+		validRecord(),
+		{id: "old", title: "Old", archived: true, createdAt: createdAt, editedAt: createdAt, version: 1},
+		{id: "soon", title: "Soon", remindAt: editedAt.Add(time.Hour), createdAt: createdAt, editedAt: createdAt, version: 2},
+	} {
 		note, err := toDomain(record)
 		if err != nil {
 			t.Fatal(err)

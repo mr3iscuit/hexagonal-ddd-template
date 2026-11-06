@@ -19,6 +19,8 @@ const (
 	jsonType    = "application/json"
 	problemType = "application/problem+json"
 	groceries   = `{"title":"Groceries","body":"Milk"}`
+
+	futureReminder = `{"remindAt":"2999-01-02T03:04:05Z"}`
 )
 
 type apiResponse struct {

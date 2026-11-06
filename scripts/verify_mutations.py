@@ -12,6 +12,7 @@ APPLICATION = "internal/notes/application/"
 MEMORY = "internal/notes/adapters/outbound/memory/"
 SYSTEM = "internal/notes/adapters/outbound/system/"
 HTTP = "internal/notes/adapters/inbound/httpapi/"
+TICKER = "internal/notes/adapters/inbound/ticker/"
 
 # Each mutation is (name, file, original text, broken text).
 MUTATIONS = [
@@ -60,7 +61,7 @@ MUTATIONS = [
     ("the ring overwrites one place", MEMORY + "in_memory_note_repository.go", "(repository.oldestOutboxRecord + 1) % maximumOutboxRecords", "(repository.oldestOutboxRecord + 0) % maximumOutboxRecords"),
     ("the ring runs off its end", MEMORY + "in_memory_note_repository.go", "(repository.oldestOutboxRecord + 1) % maximumOutboxRecords", "repository.oldestOutboxRecord + 1"),
     ("a full outbox is copied", MEMORY + "in_memory_note_repository.go", "repository.outbox[repository.oldestOutboxRecord] = record\n", "repository.outbox = append([]outboxRecord{}, repository.outbox...)\n\t\trepository.outbox[repository.oldestOutboxRecord] = record\n"),
-    ("the list ignores archived notes", MEMORY + "in_memory_note_repository.go", "if record.archived == archived {", "if !record.archived {"),
+    ("the list ignores archived notes", MEMORY + "in_memory_note_repository.go", "return record.archived == archived", "return !record.archived"),
     ("damaged data is wrapped", MEMORY + "constants.go", '"stored note has a damaged title: %v"', '"stored note has a damaged title: %w"'),
     ("the note limit is gone", MEMORY + "in_memory_note_repository.go", "if note.Version() == 0 && len(repository.records) >= maximumNotes {", "if false && len(repository.records) >= maximumNotes {"),
     ("edits are refused at the note limit", MEMORY + "in_memory_note_repository.go", "if note.Version() == 0 && len(repository.records) >= maximumNotes {", "if len(repository.records) >= maximumNotes {"),
@@ -97,6 +98,49 @@ MUTATIONS = [
     ("a failed write loses its request ID", HTTP + "note_handler.go", 'logger.Log(ctx, level, logWriteFailed, logKeyRequestID, requestIDFrom(ctx), logKeyError, err)', 'logger.Log(ctx, level, logWriteFailed, logKeyError, err)'),
     ("a client leaving is logged as a fault", HTTP + "note_handler.go", "if ctx.Err() != nil {", "if false {"),
     ("the Allow header is dropped", HTTP + "router.go", 'responseWriter.Header().Set("Allow", allowedMethods(router, routedPath(request)))', "_ = allowedMethods"),
+    ("a reminder can be for right now", DOMAIN + "note.go", "if !remindAt.After(scheduledAt) {", "if remindAt.Before(scheduledAt) {"),
+    ("a reminder can be in the past", DOMAIN + "note.go", "if !remindAt.After(scheduledAt) {", "if false {"),
+    ("a reminder can be set on an archived note", DOMAIN + "note.go", "if note.archived {\n\t\treturn Note{}, ErrNoteArchived\n\t}\n\tif !remindAt.After(scheduledAt) {", "if false {\n\t\treturn Note{}, ErrNoteArchived\n\t}\n\tif !remindAt.After(scheduledAt) {"),
+    ("a missing reminder can be cancelled", DOMAIN + "note.go", "if note.remindAt.IsZero() {\n\t\treturn Note{}, ErrNoReminderScheduled", "if false {\n\t\treturn Note{}, ErrNoReminderScheduled"),
+    ("cancelling leaves the reminder", DOMAIN + "note.go", "note.remindAt = time.Time{}\n\treturn note.recording(ReminderCancelled", "return note.recording(ReminderCancelled"),
+    ("archiving leaves the reminder", DOMAIN + "note.go", "if !note.remindAt.IsZero() {\n\t\tnote = note.withoutReminder(archivedAt)", "if false {\n\t\tnote = note.withoutReminder(archivedAt)"),
+    ("archiving always records a cancellation", DOMAIN + "note.go", "if !note.remindAt.IsZero() {\n\t\tnote = note.withoutReminder(archivedAt)", "if true {\n\t\tnote = note.withoutReminder(archivedAt)"),
+    ("triggering leaves the reminder", DOMAIN + "note.go", "note.remindAt = time.Time{}\n\treturn note.recording(ReminderTriggered", "return note.recording(ReminderTriggered"),
+    ("scheduling counts as an edit", DOMAIN + "note.go", "note.remindAt = remindAt\n", "note.remindAt = remindAt\n\tnote.editedAt = scheduledAt\n"),
+    ("cancelling counts as an edit", DOMAIN + "note.go", "note.remindAt = time.Time{}\n\treturn note.recording(ReminderCancelled", "note.remindAt = time.Time{}\n\tnote.editedAt = cancelledAt\n\treturn note.recording(ReminderCancelled"),
+    ("triggering counts as an edit", DOMAIN + "note.go", "note.remindAt = time.Time{}\n\treturn note.recording(ReminderTriggered", "note.remindAt = time.Time{}\n\tnote.editedAt = triggeredAt\n\treturn note.recording(ReminderTriggered"),
+    ("a reminder can trigger early", DOMAIN + "note.go", "if triggeredAt.Before(note.remindAt) {", "if false {"),
+    ("exactly on time isn't due", DOMAIN + "note.go", "if triggeredAt.Before(note.remindAt) {", "if !triggeredAt.After(note.remindAt) {"),
+    ("a missing reminder can trigger", DOMAIN + "note.go", "if note.remindAt.IsZero() {\n\t\treturn Note{}, ErrNoReminderScheduled\n\t}\n\tif triggeredAt", "if false {\n\t\treturn Note{}, ErrNoReminderScheduled\n\t}\n\tif triggeredAt"),
+    ("scheduling skips its checks", DOMAIN + "note.go", "if err := note.requireChange(scheduledAt); err != nil {", "if err := error(nil); err != nil {"),
+    ("cancelling skips its checks", DOMAIN + "note.go", "if err := note.requireChange(cancelledAt); err != nil {", "if err := error(nil); err != nil {"),
+    ("triggering skips its checks", DOMAIN + "note.go", "if err := note.requireChange(triggeredAt); err != nil {", "if err := error(nil); err != nil {"),
+    ("a reminder is lost on save", MEMORY + "mapper.go", "remindAt:  note.RemindAt(),", "remindAt:  note.CreatedAt(),"),
+    ("a reminder is lost on load", DOMAIN + "note.go", "archived: archived, remindAt: remindAt,", "archived: archived,"),
+    ("a reminder due now isn't listed", MEMORY + "in_memory_note_repository.go", "!record.remindAt.IsZero() && !record.remindAt.After(now)", "!record.remindAt.IsZero() && record.remindAt.Before(now)"),
+    ("a note with no reminder is listed as due", MEMORY + "in_memory_note_repository.go", "!record.remindAt.IsZero() && !record.remindAt.After(now)", "!record.remindAt.After(now)"),
+    ("a reminder that isn't due is listed", MEMORY + "in_memory_note_repository.go", "!record.remindAt.IsZero() && !record.remindAt.After(now)", "!record.remindAt.IsZero()"),
+    ("the view loses the reminder", APPLICATION + "mapper.go", "RemindAt:  note.RemindAt(),", "RemindAt:  note.CreatedAt(),"),
+    ("a scheduled reminder isn't saved", APPLICATION + "note_application_service.go", "if err := service.noteRepository.Save(ctx, scheduled); err != nil {", "if err := error(nil); err != nil {"),
+    ("a refused reminder is saved", APPLICATION + "note_application_service.go", "scheduled, err := note.ScheduleReminder(command.RemindAt, service.clock.Now())\n\tif err != nil {", "scheduled, err := note.ScheduleReminder(command.RemindAt, service.clock.Now())\n\tif false {"),
+    ("a cancelled reminder isn't saved", APPLICATION + "note_application_service.go", "if err := service.noteRepository.Save(ctx, cancelled); err != nil {", "if err := error(nil); err != nil {"),
+    ("the reminder check ignores a failed search", APPLICATION + "note_application_service.go", "notes, err := service.noteRepository.ListDueReminders(ctx, now)\n\tif err != nil {", "notes, err := service.noteRepository.ListDueReminders(ctx, now)\n\tif false {"),
+    ("the reminder check stores a refused trigger", APPLICATION + "note_application_service.go", "changed, err := note.TriggerReminder(now)\n\t\tif err != nil {", "changed, err := note.TriggerReminder(now)\n\t\tif false {"),
+    ("a conflict stops the reminder check", APPLICATION + "note_application_service.go", "if errors.Is(err, ErrNoteModifiedConcurrently) {", "if errors.Is(err, ErrNoteModifiedConcurrently) && false {"),
+    ("a storage failure doesn't stop the reminder check", APPLICATION + "note_application_service.go", "if err != nil {\n\t\t\treturn triggered, err\n\t\t}\n\t\ttriggered++", "if err != nil {\n\t\t\tcontinue\n\t\t}\n\t\ttriggered++"),
+    ("triggered reminders aren't counted", APPLICATION + "note_application_service.go", "\t\ttriggered++\n", ""),
+    ("a reminder keeps its time zone", HTTP + "mapper.go", "RemindAt:  view.RemindAt.UTC(),", "RemindAt:  view.RemindAt,"),
+    ("a note with no reminder shows a zero time", HTTP + "note_response_dto.go", 'json:"remindAt,omitzero"', 'json:"remindAt"'),
+    ("a bad reminder time reaches the domain", HTTP + "note_handler.go", "remindAt, err := time.Parse(time.RFC3339, requestDTO.RemindAt)\n\tif err != nil {", "remindAt, err := time.Parse(time.RFC3339, requestDTO.RemindAt)\n\tif err != nil && false {"),
+    ("a refused reminder looks scheduled", HTTP + "note_handler.go", "view, err := handler.noteUseCases.ScheduleReminder(request.Context(), toScheduleReminderCommand(noteIDFrom(request), remindAt))\n\tif err != nil {", "view, err := handler.noteUseCases.ScheduleReminder(request.Context(), toScheduleReminderCommand(noteIDFrom(request), remindAt))\n\tif err != nil && false {"),
+    ("cancelling a reminder ignores a body", HTTP + "note_handler.go", "handler.handle(withoutBody(handler.cancelReminder))", "handler.handle(handler.cancelReminder)"),
+    ("a tick does nothing", TICKER + "tick_handler.go", "\t\t\thandler.checkReminders(ctx)\n", ""),
+    ("the ticker ignores shutdown", TICKER + "tick_handler.go", "\t\tcase <-ctx.Done():\n\t\t\treturn\n", ""),
+    ("triggered reminders aren't logged", TICKER + "tick_handler.go", "if triggered > 0 {", "if false {"),
+    ("an empty check is logged", TICKER + "tick_handler.go", "if triggered > 0 {", "if true {"),
+    ("a failed check isn't logged", TICKER + "tick_handler.go", "if err != nil && ctx.Err() == nil {", "if err != nil && false {"),
+    ("a shutdown is logged as a failure", TICKER + "tick_handler.go", "if err != nil && ctx.Err() == nil {", "if err != nil {"),
+    ("a panic ends the checks", TICKER + "tick_handler.go", "if recovered := recover(); recovered != nil {", "if recovered := any(nil); recovered != nil {"),
 ]
 
 

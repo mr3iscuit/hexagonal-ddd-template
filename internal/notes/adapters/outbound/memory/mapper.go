@@ -12,6 +12,7 @@ func toRecord(note domain.Note) noteRecord {
 		title:     note.Title().String(),
 		body:      note.Body().String(),
 		archived:  note.IsArchived(),
+		remindAt:  note.RemindAt(),
 		createdAt: note.CreatedAt(),
 		editedAt:  note.EditedAt(),
 		version:   note.Version(),
@@ -33,11 +34,23 @@ func toDomain(record noteRecord) (domain.Note, error) {
 	if err != nil {
 		return domain.Note{}, fmt.Errorf(damagedBodyFormat, err)
 	}
-	note, err := domain.ReconstituteNote(id, title, body, record.archived, record.createdAt, record.editedAt, record.version)
+	note, err := domain.ReconstituteNote(id, title, body, record.archived, record.remindAt, record.createdAt, record.editedAt, record.version)
 	if err != nil {
 		return domain.Note{}, fmt.Errorf(damagedNoteFormat, err)
 	}
 	return note, nil
+}
+
+func toDomains(records []noteRecord) ([]domain.Note, error) {
+	notes := make([]domain.Note, 0, len(records))
+	for _, record := range records {
+		note, err := toDomain(record)
+		if err != nil {
+			return nil, err
+		}
+		notes = append(notes, note)
+	}
+	return notes, nil
 }
 
 func toOutboxRecords(note domain.Note) []outboxRecord {

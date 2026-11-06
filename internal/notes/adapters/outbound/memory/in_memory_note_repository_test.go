@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/application"
 	"github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/domain"
@@ -321,15 +322,68 @@ func TestListingSeparatesActiveFromArchivedNotes(t *testing.T) {
 	}
 }
 
+func withReminderDueAt(t *testing.T, repository *InMemoryNoteRepository, id string, dueAt time.Time) {
+	t.Helper()
+	note, err := saved(t, repository, id).ScheduleReminder(dueAt, createdAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.Save(context.Background(), note); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestListingDueRemindersFindsOnlyDueNotes(t *testing.T) {
+	repository := NewInMemoryNoteRepository()
+	withReminderDueAt(t, repository, "overdue", editedAt.Add(-time.Minute))
+	withReminderDueAt(t, repository, "exactly-due", editedAt)
+	withReminderDueAt(t, repository, "not-due-yet", editedAt.Add(time.Nanosecond))
+	saved(t, repository, "no-reminder")
+	notes, err := repository.ListDueReminders(context.Background(), editedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ids []string
+	for _, note := range notes {
+		ids = append(ids, note.ID().String())
+	}
+	slices.Sort(ids)
+	if want := []string{"exactly-due", "overdue"}; !slices.Equal(ids, want) {
+		t.Errorf("ids = %v, want %v", ids, want)
+	}
+}
+
+type fixedClock struct{ now time.Time }
+
+func (clock fixedClock) Now() time.Time { return clock.now }
+
+// This joins the real use case to real storage, because the event reaching the
+// outbox is what the whole feature promises.
+func TestADueReminderReachesTheOutbox(t *testing.T) {
+	repository := NewInMemoryNoteRepository()
+	withReminderDueAt(t, repository, "groceries", editedAt)
+	service := application.NewNoteApplicationService(repository, fixedClock{now: editedAt}, nil)
+	triggered, err := service.TriggerDueReminders(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	last := repository.outbox[len(repository.outbox)-1]
+	if want := (outboxRecord{"reminder.triggered", "groceries", editedAt}); triggered != 1 || last != want {
+		t.Errorf("triggered = %d, last event = %+v, want %+v", triggered, last, want)
+	}
+}
+
 func TestDamagedDataIsNotAClientMistake(t *testing.T) {
 	repository := NewInMemoryNoteRepository()
 	note := saved(t, repository, "groceries")
 	record := repository.records["groceries"]
 	record.title = ""
+	record.remindAt = createdAt
 	repository.records["groceries"] = record
 	_, findError := repository.FindByID(context.Background(), note.ID())
 	_, listError := repository.List(context.Background(), false)
-	for _, err := range []error{findError, listError} {
+	_, dueError := repository.ListDueReminders(context.Background(), editedAt)
+	for _, err := range []error{findError, listError, dueError} {
 		if err == nil || errors.Is(err, domain.ErrTitleRequired) || errors.Is(err, application.ErrNoteNotFound) {
 			t.Errorf("err = %v", err)
 		}
@@ -343,11 +397,13 @@ func TestACancelledRequestReachesNoStorage(t *testing.T) {
 	cancel()
 	_, findError := repository.FindByID(ctx, note.ID())
 	_, listError := repository.List(ctx, false)
+	_, dueError := repository.ListDueReminders(ctx, editedAt)
 	for name, err := range map[string]error{
 		"save":   repository.Save(ctx, archive(t, note)),
 		"remove": repository.Remove(ctx, note),
 		"find":   findError,
 		"list":   listError,
+		"due":    dueError,
 	} {
 		if !errors.Is(err, context.Canceled) {
 			t.Errorf("%s: err = %v", name, err)

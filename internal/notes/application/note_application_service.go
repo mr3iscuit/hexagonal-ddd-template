@@ -3,6 +3,7 @@ package application
 
 import (
 	"context"
+	"errors"
 
 	"github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/domain"
 )
@@ -105,6 +106,63 @@ func (service NoteApplicationService) DeleteNote(ctx context.Context, command De
 		return err
 	}
 	return service.noteRepository.Remove(ctx, deleted)
+}
+
+func (service NoteApplicationService) ScheduleReminder(ctx context.Context, command ScheduleReminderCommand) (NoteViewDTO, error) {
+	note, err := service.load(ctx, command.NoteID)
+	if err != nil {
+		return NoteViewDTO{}, err
+	}
+	scheduled, err := note.ScheduleReminder(command.RemindAt, service.clock.Now())
+	if err != nil {
+		return NoteViewDTO{}, err
+	}
+	if err := service.noteRepository.Save(ctx, scheduled); err != nil {
+		return NoteViewDTO{}, err
+	}
+	return toNoteViewDTO(scheduled), nil
+}
+
+func (service NoteApplicationService) CancelReminder(ctx context.Context, command CancelReminderCommand) (NoteViewDTO, error) {
+	note, err := service.load(ctx, command.NoteID)
+	if err != nil {
+		return NoteViewDTO{}, err
+	}
+	cancelled, err := note.CancelReminder(service.clock.Now())
+	if err != nil {
+		return NoteViewDTO{}, err
+	}
+	if err := service.noteRepository.Save(ctx, cancelled); err != nil {
+		return NoteViewDTO{}, err
+	}
+	return toNoteViewDTO(cancelled), nil
+}
+
+// TriggerDueReminders fires every reminder that has come due, and returns how
+// many it fired.
+func (service NoteApplicationService) TriggerDueReminders(ctx context.Context) (int, error) {
+	now := service.clock.Now()
+	notes, err := service.noteRepository.ListDueReminders(ctx, now)
+	if err != nil {
+		return 0, err
+	}
+	triggered := 0
+	for _, note := range notes {
+		changed, err := note.TriggerReminder(now)
+		if err != nil {
+			return triggered, err
+		}
+		err = service.noteRepository.Save(ctx, changed)
+		// The note changed after it was listed, so the next check decides again.
+		if errors.Is(err, ErrNoteModifiedConcurrently) {
+			continue
+		}
+		if err != nil {
+			return triggered, err
+		}
+		triggered++
+	}
+	return triggered, nil
 }
 
 func (service NoteApplicationService) GetNote(ctx context.Context, query GetNoteQuery) (NoteViewDTO, error) {

@@ -22,11 +22,11 @@ func TestViewMappingKeepsEveryField(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	note, err := domain.ReconstituteNote(id, title, body, true, createdAt, editedAt, 1)
+	note, err := domain.ReconstituteNote(id, title, body, true, editedAt.Add(time.Hour), createdAt, editedAt, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := NoteViewDTO{ID: "groceries", Title: "Groceries", Body: "Milk", Archived: true, CreatedAt: createdAt, EditedAt: editedAt}
+	want := NoteViewDTO{ID: "groceries", Title: "Groceries", Body: "Milk", Archived: true, RemindAt: editedAt.Add(time.Hour), CreatedAt: createdAt, EditedAt: editedAt}
 	if got := toNoteViewDTO(note); got != want {
 		t.Errorf("got %+v, want %+v", got, want)
 	}

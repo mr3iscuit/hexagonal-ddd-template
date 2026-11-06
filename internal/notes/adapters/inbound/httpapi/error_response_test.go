@@ -43,6 +43,16 @@ func TestEveryFailureReturnsTheStandardErrorResponse(t *testing.T) {
 		{"archiving an unknown note", http.MethodPost, "/notes/missing/archive", jsonType, "", http.StatusNotFound, business, "NOTE_NOT_FOUND"},
 		{"restoring an unknown note", http.MethodPost, "/notes/missing/restore", jsonType, "", http.StatusNotFound, business, "NOTE_NOT_FOUND"},
 		{"deleting an unknown note", http.MethodDelete, "/notes/missing", jsonType, "", http.StatusNotFound, business, "NOTE_NOT_FOUND"},
+		{"a reminder on an unknown note", http.MethodPut, "/notes/missing/reminder", jsonType, futureReminder, http.StatusNotFound, business, "NOTE_NOT_FOUND"},
+		{"a reminder in the past", http.MethodPut, note + "/reminder", jsonType, `{"remindAt":"2000-01-02T03:04:05Z"}`, http.StatusUnprocessableEntity, business, "NOTE_REMINDER_NOT_IN_FUTURE"},
+		{"a reminder on an archived note", http.MethodPut, archived + "/reminder", jsonType, futureReminder, http.StatusConflict, business, "NOTE_ARCHIVED"},
+		{"a reminder time that isn't a time", http.MethodPut, note + "/reminder", jsonType, `{"remindAt":"tomorrow"}`, http.StatusUnprocessableEntity, technical, "VALIDATION_FAILED"},
+		{"a reminder time with no offset", http.MethodPut, note + "/reminder", jsonType, `{"remindAt":"2999-01-02T03:04:05"}`, http.StatusUnprocessableEntity, technical, "VALIDATION_FAILED"},
+		{"a reminder time of the wrong type", http.MethodPut, note + "/reminder", jsonType, `{"remindAt":1}`, http.StatusUnprocessableEntity, technical, "VALIDATION_FAILED"},
+		{"a missing reminder time", http.MethodPut, note + "/reminder", jsonType, `{}`, http.StatusUnprocessableEntity, technical, "VALIDATION_FAILED"},
+		{"cancelling on an unknown note", http.MethodDelete, "/notes/missing/reminder", jsonType, "", http.StatusNotFound, business, "NOTE_NOT_FOUND"},
+		{"cancelling with no reminder", http.MethodDelete, note + "/reminder", jsonType, "", http.StatusConflict, business, "NOTE_REMINDER_NOT_SCHEDULED"},
+		{"a body on cancelling a reminder", http.MethodDelete, note + "/reminder", jsonType, "x", http.StatusUnprocessableEntity, technical, "VALIDATION_FAILED"},
 		{"blank note ID", http.MethodGet, "/notes/%20", jsonType, "", http.StatusUnprocessableEntity, business, "NOTE_ID_REQUIRED"},
 		{"blank title", http.MethodPost, "/notes", jsonType, `{"title":"  ","body":""}`, http.StatusUnprocessableEntity, business, "NOTE_TITLE_REQUIRED"},
 		{"blank title on edit", http.MethodPut, note, jsonType, `{"title":"","body":""}`, http.StatusUnprocessableEntity, business, "NOTE_TITLE_REQUIRED"},
@@ -106,13 +116,14 @@ func TestEveryFailureReturnsTheStandardErrorResponse(t *testing.T) {
 func TestAMethodNotAllowedResponseListsTheAllowedMethods(t *testing.T) {
 	server := newServer(t)
 	testCases := map[string]string{
-		"/notes":                   "GET, POST",
-		"/notes/some-note":         "GET, PUT, DELETE",
-		"/notes/some-note/archive": "POST",
-		"/healthz":                 "GET",
-		"/notes/a%2Fb":             "GET, PUT, DELETE",
-		"/notes/a%2Farchive":       "GET, PUT, DELETE",
-		"/notes/%41BC/archive":     "POST",
+		"/notes":                    "GET, POST",
+		"/notes/some-note":          "GET, PUT, DELETE",
+		"/notes/some-note/archive":  "POST",
+		"/notes/some-note/reminder": "PUT, DELETE",
+		"/healthz":                  "GET",
+		"/notes/a%2Fb":              "GET, PUT, DELETE",
+		"/notes/a%2Farchive":        "GET, PUT, DELETE",
+		"/notes/%41BC/archive":      "POST",
 	}
 	for path, allowed := range testCases {
 		response := call(t, http.MethodPatch, server.URL+path, jsonType, "")
@@ -137,6 +148,7 @@ func TestValidationErrorsNameEachProblemWithoutEchoingInput(t *testing.T) {
 		{"unknown query parameter", "/notes?private=1", http.MethodGet, "", []string{"query"}},
 		{"bad filter value", "/notes?archived=private", http.MethodGet, "", []string{"query.archived"}},
 		{"broken query", "/notes?archived=%zz-private", http.MethodGet, "", []string{"query"}},
+		{"bad reminder time", "/notes/some-note/reminder", http.MethodPut, `{"remindAt":"private"}`, []string{"body.remindAt"}},
 		{"repeated field", "/notes", http.MethodPost, `{"title":"private","title":"b","body":""}`, []string{"body"}},
 	}
 	for _, testCase := range testCases {
@@ -183,8 +195,13 @@ func TestBusinessErrorsNeverEchoTheNoteID(t *testing.T) {
 type stubUseCases struct {
 	application.NoteUseCasesPort
 	createNote  func() (application.NoteViewDTO, error)
+	getNote     func() (application.NoteViewDTO, error)
 	archiveNote func() (application.NoteViewDTO, error)
 	listNotes   func() ([]application.NoteViewDTO, error)
+}
+
+func (stub stubUseCases) GetNote(context.Context, application.GetNoteQuery) (application.NoteViewDTO, error) {
+	return stub.getNote()
 }
 
 func (stub stubUseCases) CreateNote(context.Context, application.CreateNoteCommand) (application.NoteViewDTO, error) {

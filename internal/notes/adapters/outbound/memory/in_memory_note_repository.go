@@ -4,6 +4,7 @@ package memory
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/application"
 	"github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/domain"
@@ -77,26 +78,29 @@ func (repository *InMemoryNoteRepository) List(ctx context.Context, archived boo
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	records := repository.matchingRecords(archived)
-	notes := make([]domain.Note, 0, len(records))
-	for _, record := range records {
-		note, err := toDomain(record)
-		if err != nil {
-			return nil, err
-		}
-		notes = append(notes, note)
-	}
-	return notes, nil
+	return toDomains(repository.recordsWhere(func(record noteRecord) bool {
+		return record.archived == archived
+	}))
 }
 
-// matchingRecords copies the records, so that rebuilding them for a long list
-// doesn't hold the lock that every other request needs.
-func (repository *InMemoryNoteRepository) matchingRecords(archived bool) []noteRecord {
+// ListDueReminders finds the notes whose reminder has come due.
+func (repository *InMemoryNoteRepository) ListDueReminders(ctx context.Context, now time.Time) ([]domain.Note, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return toDomains(repository.recordsWhere(func(record noteRecord) bool {
+		return !record.remindAt.IsZero() && !record.remindAt.After(now)
+	}))
+}
+
+// recordsWhere copies the matching records, so that rebuilding them for a long
+// list doesn't hold the lock that every other request needs.
+func (repository *InMemoryNoteRepository) recordsWhere(matches func(noteRecord) bool) []noteRecord {
 	repository.mutex.Lock()
 	defer repository.mutex.Unlock()
-	records := make([]noteRecord, 0, len(repository.records))
+	var records []noteRecord
 	for _, record := range repository.records {
-		if record.archived == archived {
+		if matches(record) {
 			records = append(records, record)
 		}
 	}

@@ -12,4 +12,8 @@ const (
 	noteArchivedEventName = "note.archived"
 	noteRestoredEventName = "note.restored"
 	noteDeletedEventName  = "note.deleted"
+
+	reminderScheduledEventName = "reminder.scheduled"
+	reminderCancelledEventName = "reminder.cancelled"
+	reminderTriggeredEventName = "reminder.triggered"
 )

@@ -11,8 +11,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/adapters/inbound/httpapi"
+	"github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/adapters/inbound/ticker"
 	"github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/adapters/outbound/memory"
 	"github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/adapters/outbound/system"
 	"github.com/mr3iscuit/hexagonal-ddd-template/internal/notes/application"
@@ -43,6 +45,10 @@ func run(logger *slog.Logger) error {
 		WriteTimeout:      writeTimeout,
 		IdleTimeout:       idleTimeout,
 	}
+
+	reminderTicks := time.NewTicker(reminderCheckInterval)
+	defer reminderTicks.Stop()
+	go ticker.NewTickHandler(noteUseCases, logger).Run(ctx, reminderTicks.C)
 
 	serveError := make(chan error, 1)
 	go func() {

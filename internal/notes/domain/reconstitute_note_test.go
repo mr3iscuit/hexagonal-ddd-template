@@ -8,14 +8,14 @@ import (
 )
 
 func TestReconstitutingKeepsEveryValueAndRaisesNoEvents(t *testing.T) {
-	note, err := domain.ReconstituteNote(noteID(t, "groceries"), title(t, "Groceries"), body(t, "Milk"), true, createdAt, changedAt, 7)
+	note, err := domain.ReconstituteNote(noteID(t, "groceries"), title(t, "Groceries"), body(t, "Milk"), true, remindAt, createdAt, changedAt, 7)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if note.ID().String() != "groceries" || note.Title().String() != "Groceries" || note.Body().String() != "Milk" {
 		t.Errorf("note = %+v", note)
 	}
-	if !note.IsArchived() || !note.CreatedAt().Equal(createdAt) || !note.EditedAt().Equal(changedAt) || note.Version() != 7 {
+	if !note.IsArchived() || !note.RemindAt().Equal(remindAt) || !note.CreatedAt().Equal(createdAt) || !note.EditedAt().Equal(changedAt) || note.Version() != 7 {
 		t.Errorf("note = %+v", note)
 	}
 	if len(note.PendingEvents()) != 0 {
@@ -41,7 +41,7 @@ func TestReconstitutingRefusesAnIncompleteNote(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			if _, err := domain.ReconstituteNote(testCase.id, testCase.title, domain.Body{}, false, testCase.createdAt, testCase.editedAt, testCase.version); err == nil {
+			if _, err := domain.ReconstituteNote(testCase.id, testCase.title, domain.Body{}, false, time.Time{}, testCase.createdAt, testCase.editedAt, testCase.version); err == nil {
 				t.Error("the incomplete note was accepted")
 			}
 		})
@@ -52,13 +52,13 @@ func TestReconstitutingRefusesAnIncompleteNote(t *testing.T) {
 // saved data. A check on it would be a business rule, and those stay out of
 // reconstitution, or changing one would make saved data look damaged.
 func TestReconstitutingAppliesNoBusinessRules(t *testing.T) {
-	if _, err := domain.ReconstituteNote(noteID(t, "groceries"), title(t, "Groceries"), domain.Body{}, true, changedAt, createdAt, 1); err != nil {
+	if _, err := domain.ReconstituteNote(noteID(t, "groceries"), title(t, "Groceries"), domain.Body{}, true, time.Time{}, changedAt, createdAt, 1); err != nil {
 		t.Errorf("err = %v", err)
 	}
 }
 
 func TestReconstitutedNoteCanStillChange(t *testing.T) {
-	note, err := domain.ReconstituteNote(noteID(t, "groceries"), title(t, "Groceries"), domain.Body{}, false, createdAt, createdAt, 3)
+	note, err := domain.ReconstituteNote(noteID(t, "groceries"), title(t, "Groceries"), domain.Body{}, false, time.Time{}, createdAt, createdAt, 3)
 	if err != nil {
 		t.Fatal(err)
 	}

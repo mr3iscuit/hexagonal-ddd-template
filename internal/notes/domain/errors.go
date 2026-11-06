@@ -14,10 +14,13 @@ var (
 	ErrBodyHasControlCharacter  = errors.New("note body must have no control characters apart from line breaks and tabs")
 	ErrNoteAlreadyArchived      = errors.New("note is already archived")
 	ErrNoteNotArchived          = errors.New("note is not archived")
-	ErrNoteArchived             = errors.New("an archived note cannot be edited")
+	ErrNoteArchived             = errors.New("an archived note cannot be edited or given a reminder")
+	ErrReminderNotInFuture      = errors.New("a reminder must be in the future")
+	ErrNoReminderScheduled      = errors.New("the note has no reminder")
 
 	// These faults can never come from a client, so they have no HTTP form.
 	errNoteNotCreated     = errors.New("note was never created")
 	errNoteTimeMissing    = errors.New("note has no time")
+	errReminderNotDue     = errors.New("reminder is not due yet")
 	errNoteVersionInvalid = errors.New("stored note has no valid version")
 )
