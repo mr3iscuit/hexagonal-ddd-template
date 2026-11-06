@@ -2,6 +2,7 @@ package ticker_test
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"strings"
@@ -74,6 +75,41 @@ func TestTriggeredRemindersAreLogged(t *testing.T) {
 func TestACheckThatFindsNothingStaysQuiet(t *testing.T) {
 	logs := &strings.Builder{}
 	running := run(stubUseCases{trigger: func() (int, error) { return 0, nil }}, logs)
+	running.tick(t)
+	running.stop(t)
+	if logs.Len() != 0 {
+		t.Errorf("logs = %q", logs)
+	}
+}
+
+func TestAFailedCheckIsLoggedAndTheNextTickStillRuns(t *testing.T) {
+	logs := &strings.Builder{}
+	checks := 0
+	running := run(stubUseCases{trigger: func() (int, error) {
+		checks++
+		return 0, errors.New("storage is down")
+	}}, logs)
+	running.tick(t)
+	running.tick(t)
+	running.stop(t)
+	if checks != 2 {
+		t.Errorf("checks = %d", checks)
+	}
+	for _, expected := range []string{"level=ERROR", "storage is down"} {
+		if !strings.Contains(logs.String(), expected) {
+			t.Errorf("%q is missing from the logs: %q", expected, logs)
+		}
+	}
+}
+
+func TestAShutdownDuringACheckIsNotAFailure(t *testing.T) {
+	logs := &strings.Builder{}
+	var cancel context.CancelFunc
+	running := run(stubUseCases{trigger: func() (int, error) {
+		cancel()
+		return 0, context.Canceled
+	}}, logs)
+	cancel = running.cancel
 	running.tick(t)
 	running.stop(t)
 	if logs.Len() != 0 {
